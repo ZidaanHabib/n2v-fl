@@ -1,0 +1,12 @@
+name: n2v_fl
+channels:
+  - https://repo.anaconda.com/pkgs/main
+  - https://repo.anaconda.com/pkgs/r
+dependencies:
+  - matplotlib
+  - numpy
+  - pandas
+  - pytorch
+  - torchvision
+  - tifffile
+prefix: /opt/homebrew/Caskroom/miniconda/base/envs/n2v_fl
