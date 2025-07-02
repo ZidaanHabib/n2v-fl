@@ -10,4 +10,5 @@ dependencies:
   - torchvision
   - tifffile
   - ipykernel
+  - pathlib
 prefix: /opt/homebrew/Caskroom/miniconda/base/envs/n2v_fl
