@@ -11,4 +11,5 @@ dependencies:
   - tifffile
   - ipykernel
   - pathlib
+  - tqdm
 prefix: /opt/homebrew/Caskroom/miniconda/base/envs/n2v_fl
