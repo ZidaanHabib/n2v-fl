@@ -17,17 +17,21 @@ def load_dataset(batch_size: int, num_workers = 0, patch_size = 256 ):
     # define transforms for dataset
     transform_confocal = v2.Compose([
         v2.ToImage(),
+        v2.ConvertImageDtype(torch.float32),
         v2.RandomCrop(size=patch_size,padding=512,padding_mode="reflect"),
     ])
 
     transform_nucleus = v2.Compose([
         v2.ToImage(),
-        v2.Pad(padding=768,padding_mode="reflect"),
+        v2.ConvertImageDtype(torch.float32),
+        v2.Pad(padding=256,padding_mode="reflect"),
+        v2.Pad(padding=512,padding_mode="reflect"), 
         v2.RandomCrop(size=patch_size),
     ])
 
     transform = v2.Compose([
         v2.ToImage(),
+        v2.ConvertImageDtype(torch.float32),
         v2.RandomCrop(size=patch_size),
     ])
 
@@ -80,22 +84,20 @@ def setup_optimizer(model_params: Iterable[nn.Parameter], type: str, lr: float, 
     
     return optim
 
-def accuracy_fn(y_true, y_pred):
-    correct = torch.eq(y_true, y_pred).sum().item() # torch.eq() calculates where two tensors are equal
-    acc = (correct / len(y_pred)) * 100 
-    return acc
 
-def train_step(model, loader, loss_fn, opt, device):
+def train_step(model, data_loader, loss_fn, opt, device):
     model.to(device)
     model.train()
     running_loss, running_psnr = 0.0, 0.0
 
-    for X, y in loader:
+    for batch, (X, y) in enumerate(data_loader):
+        
         X, y = X.to(device), y.to(device)
 
         opt.zero_grad()
         denoised = model(X)
         loss   = loss_fn(denoised, y)
+
         loss.backward()
         opt.step()
 
@@ -105,9 +107,10 @@ def train_step(model, loader, loss_fn, opt, device):
             # if your data range is [0,1]; otherwise pass max_val=255
             batch_psnr = compute_psnr(denoised, y, max_val=1.0)
         running_psnr += batch_psnr
+        print(f"Batch {batch} done")
 
-    epoch_loss   = running_loss   / len(loader)
-    epoch_psnr = running_psnr/ len(loader)
+    epoch_loss   = running_loss   / len(data_loader)
+    epoch_psnr = running_psnr/ len(data_loader)
     print(f"Train loss: {epoch_loss:.5f} | PSNR: {epoch_psnr:.2f}")
 
 
@@ -122,11 +125,11 @@ def test_step(
     model.eval()
 
     total_loss = 0.0
-    total_acc  = 0.0
+    total_psnr  = 0.0
 
     # No gradients needed
     with torch.inference_mode():
-        for X, y in data_loader:
+        for batch, (X, y) in enumerate(data_loader):
             # Send data to the same device
             X, y = X.to(device), y.to(device)
 
@@ -141,11 +144,13 @@ def test_step(
             batch_psnr = compute_psnr(denoised, y, max_val=1.0)
             total_psnr += batch_psnr
 
+            print(f"Validation Batch {batch} done")
+
     # Average over batches
     avg_loss = total_loss / len(data_loader)
     avg_psnr  = total_psnr  / len(data_loader)
 
-    print(f"Test loss: {avg_loss:.5f} | Test PSNR: {avg_psnr:.2f}%\n")
+    print(f"Test loss: {avg_loss:.5f} | Test PSNR: {avg_psnr:.2f}\n")
     return avg_loss, avg_psnr
 
 def compute_psnr(pred, target, max_val=1.0):
