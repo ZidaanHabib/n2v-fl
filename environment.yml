@@ -15,4 +15,5 @@ dependencies:
   - pathlib
   - tqdm
   - hydra-core
+  - cudatoolkit=11.8   
 prefix: /opt/homebrew/Caskroom/miniconda/base/envs/n2v_fl

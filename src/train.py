@@ -6,7 +6,8 @@ from tqdm import tqdm
 from utils.build import load_dataset, setup_loss, setup_optimizer, train_step, test_step, seed, set_device
 from models.unet import UNet
 
-
+import torch
+from pathlib import Path
 
 @hydra.main(version_base=None, config_path="config", config_name="default")
 def main(cfg: DictConfig):
@@ -26,7 +27,13 @@ def main(cfg: DictConfig):
     loss_fn = setup_loss()
     optim = setup_optimizer(model_params=model.parameters(), type=cfg.optimizer.type, lr=cfg.optimizer.lr, betas=cfg.optimizer.betas)
 
+    
+
+    Path("checkpoints").mkdir(parents=True, exist_ok=True)
+
+
     epochs = cfg.train.epochs
+    best_val_loss = float("inf")
     start_time = time.perf_counter()
     for epoch in tqdm(range(epochs)):
         print(f"Epoch: {epoch}\n---------")
@@ -37,11 +44,30 @@ def main(cfg: DictConfig):
             device=device
   
         )
-        test_step(data_loader=test_loader,
+        avg_loss, avg_psnr = test_step(data_loader=test_loader,
             model=model,
             loss_fn=loss_fn,
             device=device
         )
+
+        torch.save(
+            {
+                "epoch":       epoch,
+                "model_state": model.state_dict(),
+                "optim_state": optim.state_dict(),
+                "avg_loss":    avg_loss,
+                "avg_psnr":    avg_psnr
+            },
+            "checkpoints/last.pth",
+        )
+
+        # If it’s the best so far, also save “best.pth”
+        if avg_loss < best_val_loss:
+            best_val_loss = avg_loss
+            torch.save(
+                model.state_dict(),  # you can omit optimizer if only inference
+                "checkpoints/best.pth",
+            )
     total_time = time.perf_counter() - start_time
     print(f"Training time: {(total_time / 60):.2f} minutes")
 
