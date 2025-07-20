@@ -2,6 +2,8 @@ name: n2v_fl
 channels:
   - https://repo.anaconda.com/pkgs/main
   - https://repo.anaconda.com/pkgs/r
+  - pytorch
+  - conda-forge
 dependencies:
   - matplotlib
   - numpy
@@ -12,4 +14,5 @@ dependencies:
   - ipykernel
   - pathlib
   - tqdm
+  - hydra-core
 prefix: /opt/homebrew/Caskroom/miniconda/base/envs/n2v_fl
