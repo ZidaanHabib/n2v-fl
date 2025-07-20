@@ -1,0 +1,22 @@
+# Core scientific & plotting
+numpy
+pandas
+matplotlib
+
+# Image I/O
+tifffile
+
+# Notebook/kernel
+ipykernel
+
+# Progress bars
+tqdm
+
+# Config management
+hydra-core
+
+
+# PyTorch + CUDA 11.8
+--index-url https://download.pytorch.org/whl/cu118
+torch
+torchvision
