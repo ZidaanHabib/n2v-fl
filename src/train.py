@@ -1,3 +1,4 @@
+import time
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
@@ -26,19 +27,23 @@ def main(cfg: DictConfig):
     optim = setup_optimizer(model_params=model.parameters(), type=cfg.optimizer.type, lr=cfg.optimizer.lr, betas=cfg.optimizer.betas)
 
     epochs = cfg.train.epochs
+    start_time = time.perf_counter()
     for epoch in tqdm(range(epochs)):
         print(f"Epoch: {epoch}\n---------")
         train_step(data_loader=train_loader, 
             model=model, 
             loss_fn=loss_fn,
             optimizer=optim,
+            device=device
   
         )
         test_step(data_loader=test_loader,
             model=model,
             loss_fn=loss_fn,
+            device=device
         )
-
+    total_time = time.perf_counter() - start_time
+    print(f"Training time: {(total_time / 60):.2f} minutes")
 
     
 
