@@ -1,0 +1,159 @@
+
+from typing import Iterable, Optional, Tuple
+import torch.nn as nn
+import torch.optim 
+from torch.utils.data import DataLoader, ConcatDataset, random_split
+from torchvision.transforms import v2
+from pathlib import Path
+
+from data.dataset import N2NImageDataset
+
+def set_device():
+    device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu" )
+    print(f"Running on device: {device}")
+    return device
+
+def load_dataset(batch_size: int, num_workers = 0, patch_size = 256 ):
+    # define transforms for dataset
+    transform_confocal = v2.Compose([
+        v2.ToImage(),
+        v2.RandomCrop(size=patch_size,padding=512,padding_mode="reflect"),
+    ])
+
+    transform_nucleus = v2.Compose([
+        v2.ToImage(),
+        v2.Pad(padding=768,padding_mode="reflect"),
+        v2.RandomCrop(size=patch_size),
+    ])
+
+    transform = v2.Compose([
+        v2.ToImage(),
+        v2.RandomCrop(size=patch_size),
+    ])
+
+    base_dir = Path().resolve().parent
+
+    subdatasets = [ N2NImageDataset(base_dir, dataset="20x-noise1", subdataset="actin-20x-noise1",transform=transform, patches_per_image=16),
+                N2NImageDataset(base_dir, dataset="20x-noise1", subdataset="mito-20x-noise1",transform=transform, patches_per_image=16),
+                N2NImageDataset(base_dir, dataset="60x-noise1", subdataset="actin-60x-noise1",transform=transform, patches_per_image=16),
+                N2NImageDataset(base_dir, dataset="60x-noise1", subdataset="mito-60x-noise1",transform=transform, patches_per_image=16),
+                N2NImageDataset(base_dir, dataset="60x-noise2", subdataset="actin-60x-noise2",transform=transform, patches_per_image=16),
+                N2NImageDataset(base_dir, dataset="60x-noise2", subdataset="mito-60x-noise2",transform=transform, patches_per_image=16),
+                N2NImageDataset(base_dir, dataset="confocal", subdataset="actin-confocal",transform=transform_confocal, patches_per_image=16),
+                N2NImageDataset(base_dir, dataset="confocal", subdataset="mito-confocal",transform=transform_confocal, patches_per_image=16),
+                N2NImageDataset(base_dir, dataset="membrane", subdataset="membrane",transform=transform, patches_per_image=16),
+                N2NImageDataset(base_dir, dataset="nucleus", subdataset="nucleus",transform=transform_nucleus, patches_per_image=16)
+    ]
+    dataset = ConcatDataset(subdatasets)
+    dataset_length = len(dataset)
+    train_size = int(0.8 * dataset_length)
+    test_size = dataset_length - train_size
+
+    train_dataset, test_dataset = random_split(dataset, (train_size,test_size))
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=True
+    )
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=True
+    )
+    return train_loader, test_loader
+
+def setup_loss():
+    return nn.MSELoss()
+
+def setup_optimizer(model_params: Iterable[nn.Parameter], type: str, lr: float, betas: Optional[Tuple[float, float]] = None):
+    if type == 'Adam':
+        optim = torch.optim.Adam(params=model_params,betas=betas, lr=lr)
+    elif type == "SGD":
+        optim = torch.optim.SGD(params=model_params,lr=lr)
+    else:
+        raise ValueError("Invalid optimizer")
+    
+    return optim
+
+def accuracy_fn(y_true, y_pred):
+    correct = torch.eq(y_true, y_pred).sum().item() # torch.eq() calculates where two tensors are equal
+    acc = (correct / len(y_pred)) * 100 
+    return acc
+
+def train_step(model, loader, loss_fn, opt, device):
+    model.to(device)
+    model.train()
+    running_loss, running_psnr = 0.0, 0.0
+
+    for X, y in loader:
+        X, y = X.to(device), y.to(device)
+
+        opt.zero_grad()
+        denoised = model(X)
+        loss   = loss_fn(denoised, y)
+        loss.backward()
+        opt.step()
+
+        running_loss   += loss.item()
+
+        with torch.no_grad():
+            # if your data range is [0,1]; otherwise pass max_val=255
+            batch_psnr = compute_psnr(denoised, y, max_val=1.0)
+        running_psnr += batch_psnr
+
+    epoch_loss   = running_loss   / len(loader)
+    epoch_psnr = running_psnr/ len(loader)
+    print(f"Train loss: {epoch_loss:.5f} | PSNR: {epoch_psnr:.2f}")
+
+
+def test_step(
+    model: torch.nn.Module,
+    data_loader: torch.utils.data.DataLoader,
+    loss_fn: torch.nn.Module,
+    device: torch.device,
+):
+    # Move model once and switch to eval mode
+    model.to(device)
+    model.eval()
+
+    total_loss = 0.0
+    total_acc  = 0.0
+
+    # No gradients needed
+    with torch.inference_mode():
+        for X, y in data_loader:
+            # Send data to the same device
+            X, y = X.to(device), y.to(device)
+
+            # Forward pass
+            denoised = model(X)
+
+            # Compute loss & metric (use .item() to get floats)
+            loss = loss_fn(denoised, y)
+            total_loss += loss.item()
+
+            # PSNR
+            batch_psnr = compute_psnr(denoised, y, max_val=1.0)
+            total_psnr += batch_psnr
+
+    # Average over batches
+    avg_loss = total_loss / len(data_loader)
+    avg_psnr  = total_psnr  / len(data_loader)
+
+    print(f"Test loss: {avg_loss:.5f} | Test PSNR: {avg_psnr:.2f}%\n")
+
+def compute_psnr(pred, target, max_val=1.0):
+    mse = torch.mean((pred - target) ** 2)
+    mse = torch.clamp(mse, min=1e-10) # prevent log(infinity) issues
+    return 10 * torch.log10(max_val**2 / mse)
+
+def seed(seed: int):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark     = False
