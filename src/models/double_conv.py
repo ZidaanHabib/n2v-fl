@@ -9,10 +9,10 @@ class DoubleConv(nn.Module):
         self.net  = nn.Sequential(
             nn.Conv2d(in_channels=in_channels,out_channels=out_channels,kernel_size=3,stride=1,padding=1),
             nn.BatchNorm2d(out_channels),
-            nn.Relu(),
+            nn.ReLU(),
             nn.Conv2d(out_channels, out_channels,kernel_size=3,stride=1, padding=1),
             nn.BatchNorm2d(32),
-            nn.Relu(),
+            nn.ReLU(),
         )           
     def forward(self, x: torch.Tensor):
         return self.net(x)     

@@ -9,7 +9,7 @@ class UNet(nn.Module):
         super().__init__()
 
         # start with encoder portion of the network
-        self.encoder_blocks = []
+        self.encoder_blocks = nn.ModuleList()
         channels = in_channels
         for i in range(depth):
             self.encoder_blocks.append(DoubleConv(channels,base_out_channels * 2**i))
@@ -20,8 +20,8 @@ class UNet(nn.Module):
         self.bottom = DoubleConv(channels, channels * 2)
         channels = channels * 2 # tracking the number of channels at the bottom of the unet
 
-        self.decoder_blocks = []
-        self.up_convs = [] # each up convolution has different params
+        self.decoder_blocks = nn.ModuleList()
+        self.up_convs = nn.ModuleList() # each up convolution has different params
 
         for i in reversed(range(depth)):
             self.up_convs.append(nn.ConvTranspose2d(channels,base_out_channels * 2**i, kernel_size=2, stride=2))
@@ -43,7 +43,7 @@ class UNet(nn.Module):
         for up, dec in zip(self.up_convs, self.decoder_blocks):
             x = up(x)
             skip = skips.pop()
-            torch.cat((x,skip),dim=1)
+            x = torch.cat((x,skip),dim=1)
             x = dec(x)
         
         return self.final_conv(x)

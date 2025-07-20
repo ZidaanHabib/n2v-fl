@@ -16,7 +16,8 @@ def load_dataset(batch_size: int, num_workers = 0, patch_size = 256 ):
 
     transform_nucleus = v2.Compose([
         v2.ToImage(),
-        v2.RandomCrop(size=patch_size,padding=768,padding_mode="reflect"),
+        v2.Pad(padding=768,padding_mode="reflect"),
+        v2.RandomCrop(size=patch_size),
     ])
 
     transform = v2.Compose([
