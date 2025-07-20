@@ -150,7 +150,7 @@ def test_step(
     avg_loss = total_loss / len(data_loader)
     avg_psnr  = total_psnr  / len(data_loader)
 
-    print(f"Test loss: {avg_loss:.5f} | Test PSNR: {avg_psnr:.2f}%\n")
+    print(f"Test loss: {avg_loss:.5f} | Test PSNR: {avg_psnr:.2f}\n")
     return avg_loss, avg_psnr
 
 def compute_psnr(pred, target, max_val=1.0):
