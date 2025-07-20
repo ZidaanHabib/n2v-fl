@@ -35,20 +35,20 @@ def main(cfg: DictConfig):
     epochs = cfg.train.epochs
     best_val_loss = float("inf")
     start_time = time.perf_counter()
-    for epoch in tqdm(range(epochs)):
+    for epoch in range(1,epochs+1):
         print(f"Epoch: {epoch}\n---------")
         train_step(data_loader=train_loader, 
             model=model, 
             loss_fn=loss_fn,
-            optimizer=optim,
+            opt=optim,
             device=device
-  
         )
         avg_loss, avg_psnr = test_step(data_loader=test_loader,
             model=model,
             loss_fn=loss_fn,
             device=device
         )
+
 
         torch.save(
             {

@@ -11,7 +11,7 @@ class DoubleConv(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
             nn.Conv2d(out_channels, out_channels,kernel_size=3,stride=1, padding=1),
-            nn.BatchNorm2d(32),
+            nn.BatchNorm2d(out_channels),
             nn.ReLU(),
         )           
     def forward(self, x: torch.Tensor):
