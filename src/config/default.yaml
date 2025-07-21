@@ -9,6 +9,7 @@ data:
 model:
   base_channels: 32
   depth:         4
+  batch_norm: true
 train:
   epochs:       100
   weight_decay: 1e-5
