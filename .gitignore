@@ -1,5 +1,4 @@
 .DS_Store
-.data/
-.src/data/__pycache__/
-.src/utils/__pycache__/
-.src/train.log
+/data/
+/src/data/__pycache__/
+/src/utils/__pycache__/
