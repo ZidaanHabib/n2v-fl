@@ -17,8 +17,10 @@ def main(cfg: DictConfig):
     # do the global seeding for RNGs
     seed(42)
 
+    root = Path.resolve().parent
+    data_dir = Path(cfg.data.data_dir) if cfg.data.data_dir else root / "data" / "preprocessed"
     #load dataset:
-    train_loader, test_loader = load_dataset(batch_size=cfg.data.batch_size, num_workers=cfg.data.num_workers, patch_size=cfg.data.patch_size)
+    train_loader, test_loader = load_dataset(data_dir, batch_size=cfg.data.batch_size, num_workers=cfg.data.num_workers, patch_size=cfg.data.patch_size)
     
     #instantiate model
     model = UNet(1,cfg.model.base_channels, cfg.model.depth, batch_norm=cfg.model.batch_norm)

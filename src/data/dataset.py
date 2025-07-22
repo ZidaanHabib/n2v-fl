@@ -10,10 +10,9 @@ from pathlib import Path
 
 # define custom image dataset for N2n
 class N2NImageDataset(Dataset):
-    def __init__(self,root: Path, dataset: str, subdataset: str, transform, patches_per_image: int):
+    def __init__(self, data_dir: Path, dataset: str, subdataset: str, transform, patches_per_image: int):
         super().__init__()
-        self.root = root
-        dataset_dir = root / "data" / "preprocessed" / dataset
+        dataset_dir = data_dir / dataset
         self.image_prefix = f"{dataset}-{subdataset}-lowsnr" 
         self.target_prefix = f"{dataset}-{subdataset}-highsnr" 
         self.image_dir = dataset_dir / self.image_prefix # treat lowsnr as input image
