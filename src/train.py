@@ -1,9 +1,9 @@
 import time
 import hydra
-from omegaconf import DictConfig, OmegaConf
-from tqdm import tqdm
+from omegaconf import DictConfig
 
-from utils.build import load_dataset, setup_loss, setup_optimizer, train_step, test_step, seed, set_device
+
+from utils.build import distribute_model, load_dataset, setup_loss, setup_optimizer, train_step, test_step, seed, set_device
 from models.unet import UNet
 
 import torch
@@ -21,7 +21,8 @@ def main(cfg: DictConfig):
     train_loader, test_loader = load_dataset(batch_size=cfg.data.batch_size, num_workers=cfg.data.num_workers, patch_size=cfg.data.patch_size)
     
     #instantiate model
-    model = UNet(1,cfg.model.base_channels, cfg.model.depth)
+    model = UNet(1,cfg.model.base_channels, cfg.model.depth, batch_norm=cfg.model.batch_norm)
+    model = distribute_model(model, device)
 
     #set up loss and optimizer
     loss_fn = setup_loss()
@@ -41,12 +42,14 @@ def main(cfg: DictConfig):
             model=model, 
             loss_fn=loss_fn,
             opt=optim,
-            device=device
+            device=device,
+            epoch=epoch
         )
         avg_loss, avg_psnr = test_step(data_loader=test_loader,
             model=model,
             loss_fn=loss_fn,
-            device=device
+            device=device,
+            epoch=epoch
         )
 
 

@@ -5,14 +5,14 @@ from .double_conv import DoubleConv
 
 
 class UNet(nn.Module): 
-    def __init__(self, in_channels=1, base_out_channels=32, depth=4):
+    def __init__(self, in_channels=1, base_out_channels=32, depth=4, batch_norm = True):
         super().__init__()
 
         # start with encoder portion of the network
         self.encoder_blocks = nn.ModuleList()
         channels = in_channels
         for i in range(depth):
-            self.encoder_blocks.append(DoubleConv(channels,base_out_channels * 2**i))
+            self.encoder_blocks.append(DoubleConv(channels,base_out_channels * 2**i, batch_norm))
             channels = base_out_channels * 2**i
         
         # downsamples will be handled in forward()
@@ -26,7 +26,7 @@ class UNet(nn.Module):
         for i in reversed(range(depth)):
             self.up_convs.append(nn.ConvTranspose2d(channels,base_out_channels * 2**i, kernel_size=2, stride=2))
             channels = base_out_channels * 2**i
-            self.decoder_blocks.append(DoubleConv(2*channels, channels)) 
+            self.decoder_blocks.append(DoubleConv(2*channels, channels, batch_norm)) 
 
         self.final_conv = nn.Conv2d(channels, in_channels,kernel_size=1)
 
