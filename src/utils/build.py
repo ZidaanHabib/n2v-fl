@@ -13,6 +13,12 @@ def set_device():
     print(f"Running on device: {device}")
     return device
 
+def distribute_model(model: nn.Module, device: torch.device) -> nn.Module :
+    if torch.cuda.device_count() > 1:
+        print(f"→ Using {torch.cuda.device_count()} GPUs!")
+        model = nn.DataParallel(model)
+    return model.to(device)
+
 def load_dataset(batch_size: int, num_workers = 0, patch_size = 256 ):
     # define transforms for dataset
     transform_confocal = v2.Compose([
@@ -85,10 +91,10 @@ def setup_optimizer(model_params: Iterable[nn.Parameter], type: str, lr: float, 
     return optim
 
 
-def train_step(model, data_loader, loss_fn, opt, device):
-    model.to(device)
+def train_step(model, data_loader, loss_fn, opt, device, epoch):
     model.train()
     running_loss, running_psnr = 0.0, 0.0
+    losses = []
 
     for batch, (X, y) in enumerate(data_loader):
         
@@ -101,17 +107,25 @@ def train_step(model, data_loader, loss_fn, opt, device):
         loss.backward()
         opt.step()
 
-        running_loss   += loss.item()
+        current_loss = loss.item()
+        losses.append(current_loss)
+        running_loss   += current_loss
 
         with torch.no_grad():
             # if your data range is [0,1]; otherwise pass max_val=255
             batch_psnr = compute_psnr(denoised, y, max_val=1.0)
         running_psnr += batch_psnr
-        print(f"Batch {batch} done")
+        print(f"Batch {batch} done | Batch loss: {current_loss:.5f}")
+ 
 
     epoch_loss   = running_loss   / len(data_loader)
     epoch_psnr = running_psnr/ len(data_loader)
+
     print(f"Train loss: {epoch_loss:.5f} | PSNR: {epoch_psnr:.2f}")
+
+    if epoch % 20 == 0 or epoch == 1:
+        with open("output/train_losses.txt", "w") as f:
+            f.writelines(f"{loss:.5f}\n" for loss in losses)
 
 
 def test_step(
@@ -119,13 +133,14 @@ def test_step(
     data_loader: torch.utils.data.DataLoader,
     loss_fn: torch.nn.Module,
     device: torch.device,
+    epoch: int
 ):
-    # Move model once and switch to eval mode
-    model.to(device)
+    # switch to eval mode
     model.eval()
 
     total_loss = 0.0
     total_psnr  = 0.0
+    losses = []
 
     # No gradients needed
     with torch.inference_mode():
@@ -138,13 +153,19 @@ def test_step(
 
             # Compute loss & metric (use .item() to get floats)
             loss = loss_fn(denoised, y)
-            total_loss += loss.item()
+            current_loss = loss.item()
+            losses.append(current_loss)
+            total_loss += current_loss
 
             # PSNR
             batch_psnr = compute_psnr(denoised, y, max_val=1.0)
             total_psnr += batch_psnr
 
-            print(f"Validation Batch {batch} done")
+            print(f"Validation Batch {batch} done | Validation batch loss: {current_loss:.5f} ")
+
+    if epoch % 20 == 0 or epoch == 1:
+        with open("output/test_losses.txt", "w") as f:
+            f.writelines(f"{loss:.5f}\n" for loss in losses)
 
     # Average over batches
     avg_loss = total_loss / len(data_loader)
