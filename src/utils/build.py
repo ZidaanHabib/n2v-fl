@@ -124,9 +124,11 @@ def train_step(model, data_loader, loss_fn, opt, device, epoch):
     print(f"Train loss: {epoch_loss:.5f} | PSNR: {epoch_psnr:.2f}")
 
     if epoch % 20 == 0 or epoch == 1:
-        with open("output/train_losses.txt", "w") as f:
+        with open(f"output/current/epoch_{epoch}_train_losses.txt", "w") as f:
+            f.write(f"Epoch {epoch}\n")
             f.writelines(f"{loss:.5f}\n" for loss in losses)
 
+    return epoch_loss
 
 def test_step(
     model: torch.nn.Module,
@@ -164,7 +166,8 @@ def test_step(
             print(f"Validation Batch {batch} done | Validation batch loss: {current_loss:.5f} ")
 
     if epoch % 20 == 0 or epoch == 1:
-        with open("output/test_losses.txt", "w") as f:
+        with open(f"output/current/epoch_{epoch}_test_losses.txt", "w") as f:
+            f.write(f"Epoch {epoch}\n")
             f.writelines(f"{loss:.5f}\n" for loss in losses)
 
     # Average over batches
