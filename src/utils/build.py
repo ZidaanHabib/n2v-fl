@@ -24,7 +24,7 @@ def load_dataset(data_dir: Path, batch_size: int, num_workers = 0, patch_size = 
     transform_confocal = v2.Compose([
         v2.ToImage(),
         v2.ConvertImageDtype(torch.float32),
-        v2.RandomCrop(size=patch_size,padding=512,padding_mode="reflect"),
+        v2.Pad(padding=512, padding_mode='reflect'),
     ])
 
     transform_nucleus = v2.Compose([
@@ -32,13 +32,11 @@ def load_dataset(data_dir: Path, batch_size: int, num_workers = 0, patch_size = 
         v2.ConvertImageDtype(torch.float32),
         v2.Pad(padding=256,padding_mode="reflect"),
         v2.Pad(padding=512,padding_mode="reflect"), 
-        v2.RandomCrop(size=patch_size),
     ])
 
     transform = v2.Compose([
         v2.ToImage(),
         v2.ConvertImageDtype(torch.float32),
-        v2.RandomCrop(size=patch_size),
     ])
 
     subdatasets = [ N2NImageDataset(data_dir, dataset="20x-noise1", subdataset="actin-20x-noise1",transform=transform, patches_per_image=16),

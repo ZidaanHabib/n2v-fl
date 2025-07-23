@@ -1,9 +1,9 @@
 
-from torch.nn import functional as F    
 from torch.utils.data import  Dataset
 
 from torchvision import io
 from torchvision.transforms import v2
+from torchvision.transforms.v2 import functional as F
 
 from pathlib import Path
 
@@ -24,8 +24,11 @@ class N2NImageDataset(Dataset):
         return sum(self.patches_per_image for path in self.image_dir.iterdir() if path.is_file()) # count number of images in directory
     
     def __getitem__(self, index):
-        img_index = (index // self.patches_per_image ) 
-        image_patch = self.transform(io.decode_image(self.image_dir / f"{self.image_prefix}-{img_index}.png", mode=io.ImageReadMode.GRAY))
-        target_patch = self.transform(io.decode_image(self.target_dir / f"{self.target_prefix}-{img_index}.png", mode=io.ImageReadMode.GRAY))
+        img_index = (index // self.patches_per_image )
+        image = self.transform(io.decode_image(self.image_dir / f"{self.image_prefix}-{img_index}.png", mode=io.ImageReadMode.GRAY))
+        target = self.transform(io.decode_image(self.target_dir / f"{self.target_prefix}-{img_index}.png", mode=io.ImageReadMode.GRAY))
+        top, left, height, width = v2.RandomCrop(256).get_params(image,(256,256))
+        image_patch = F.crop(image, top, left, height, width)
+        target_patch = F.crop(target, top, left, height, width)
         return image_patch, target_patch
 
