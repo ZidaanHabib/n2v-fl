@@ -2,9 +2,10 @@
 seed:          42
 device:       cuda
 data:
-  batch_size:  16
-  num_workers: 0
+  batch_size:  64
+  num_workers: 48
   patch_size: 256
+  patches_per_image: 64
   data_dir:    
 model:
   base_channels: 32
@@ -12,7 +13,7 @@ model:
   batch_norm: true
 train:
   epochs:       100
-  weight_decay: 1e-5
+  weight_decay: 3e-5
 optimizer:
   type:         Adam
   lr:           1e-4
