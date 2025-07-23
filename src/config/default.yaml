@@ -23,3 +23,7 @@ hydra:
   output_subdir: null
   job:
     chdir: false
+  hydra_logging:
+    handlers: []
+  job_logging:
+    handlers: []
