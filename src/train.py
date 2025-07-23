@@ -20,7 +20,7 @@ def main(cfg: DictConfig):
     root = Path().resolve().parent
     data_dir = Path(cfg.data.data_dir) if cfg.data.data_dir else root / "data" / "preprocessed"
     #load dataset:
-    train_loader, test_loader = load_dataset(data_dir, batch_size=cfg.data.batch_size, num_workers=cfg.data.num_workers, patch_size=cfg.data.patch_size)
+    train_loader, test_loader = load_dataset(data_dir, batch_size=cfg.data.batch_size, num_workers=cfg.data.num_workers, patch_size=cfg.data.patch_size, patches_per_image=cfg.data.patches_per_image)
     
     #instantiate model
     model = UNet(1,cfg.model.base_channels, cfg.model.depth, batch_norm=cfg.model.batch_norm)

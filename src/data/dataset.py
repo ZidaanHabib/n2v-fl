@@ -10,7 +10,7 @@ from pathlib import Path
 
 # define custom image dataset for N2n
 class N2NImageDataset(Dataset):
-    def __init__(self, data_dir: Path, dataset: str, subdataset: str, transform, patches_per_image: int):
+    def __init__(self, data_dir: Path, dataset: str, subdataset: str, transform, patch_size: int, patches_per_image: int):
         super().__init__()
         dataset_dir = data_dir / dataset
         self.image_prefix = f"{dataset}-{subdataset}-lowsnr" 
@@ -18,6 +18,7 @@ class N2NImageDataset(Dataset):
         self.image_dir = dataset_dir / self.image_prefix # treat lowsnr as input image
         self.target_dir = dataset_dir / self.target_prefix # treat highsnr as target image
         self.transform = transform
+        self.patch_size = patch_size
         self.patches_per_image = patches_per_image
     
     def __len__(self):
@@ -27,7 +28,7 @@ class N2NImageDataset(Dataset):
         img_index = (index // self.patches_per_image )
         image = self.transform(io.decode_image(self.image_dir / f"{self.image_prefix}-{img_index}.png", mode=io.ImageReadMode.GRAY))
         target = self.transform(io.decode_image(self.target_dir / f"{self.target_prefix}-{img_index}.png", mode=io.ImageReadMode.GRAY))
-        top, left, height, width = v2.RandomCrop(256).get_params(image,(256,256))
+        top, left, height, width = v2.RandomCrop(self.patch_size).get_params(image,(self.patch_size,self.patch_size))
         image_patch = F.crop(image, top, left, height, width)
         target_patch = F.crop(target, top, left, height, width)
         return image_patch, target_patch
