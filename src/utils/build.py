@@ -39,16 +39,16 @@ def load_dataset(data_dir: Path, batch_size: int, num_workers = 0, patch_size = 
         v2.ConvertImageDtype(torch.float32),
     ])
 
-    subdatasets = [ N2NImageDataset(data_dir, dataset="20x-noise1", subdataset="actin-20x-noise1",transform=transform, patches_per_image=patches_per_image),
-                N2NImageDataset(data_dir, dataset="20x-noise1", subdataset="mito-20x-noise1",transform=transform, patches_per_image=patches_per_image),
-                N2NImageDataset(data_dir, dataset="60x-noise1", subdataset="actin-60x-noise1",transform=transform, patches_per_image=patches_per_image),
-                N2NImageDataset(data_dir, dataset="60x-noise1", subdataset="mito-60x-noise1",transform=transform, patches_per_image=patches_per_image),
-                N2NImageDataset(data_dir, dataset="60x-noise2", subdataset="actin-60x-noise2",transform=transform, patches_per_image=patches_per_image),
-                N2NImageDataset(data_dir, dataset="60x-noise2", subdataset="mito-60x-noise2",transform=transform, patches_per_image=patches_per_image),
-                N2NImageDataset(data_dir, dataset="confocal", subdataset="actin-confocal",transform=transform_confocal, patches_per_image=patches_per_image),
-                N2NImageDataset(data_dir, dataset="confocal", subdataset="mito-confocal",transform=transform_confocal, patches_per_image=patches_per_image),
-                N2NImageDataset(data_dir, dataset="membrane", subdataset="membrane",transform=transform, patches_per_image=patches_per_image),
-                N2NImageDataset(data_dir, dataset="nucleus", subdataset="nucleus",transform=transform_nucleus, patches_per_image=patches_per_image)
+    subdatasets = [ N2NImageDataset(data_dir, dataset="20x-noise1", subdataset="actin-20x-noise1",transform=transform, patch_size=patch_size, patches_per_image=patches_per_image),
+                N2NImageDataset(data_dir, dataset="20x-noise1", subdataset="mito-20x-noise1",transform=transform, patch_size=patch_size, patches_per_image=patches_per_image),
+                N2NImageDataset(data_dir, dataset="60x-noise1", subdataset="actin-60x-noise1",transform=transform, patch_size=patch_size, patches_per_image=patches_per_image),
+                N2NImageDataset(data_dir, dataset="60x-noise1", subdataset="mito-60x-noise1",transform=transform, patch_size=patch_size, patches_per_image=patches_per_image),
+                N2NImageDataset(data_dir, dataset="60x-noise2", subdataset="actin-60x-noise2",transform=transform, patch_size=patch_size, patches_per_image=patches_per_image),
+                N2NImageDataset(data_dir, dataset="60x-noise2", subdataset="mito-60x-noise2",transform=transform, patch_size=patch_size, patches_per_image=patches_per_image),
+                N2NImageDataset(data_dir, dataset="confocal", subdataset="actin-confocal",transform=transform_confocal, patch_size=patch_size, patches_per_image=patches_per_image),
+                N2NImageDataset(data_dir, dataset="confocal", subdataset="mito-confocal",transform=transform_confocal, patch_size=patch_size, patches_per_image=patches_per_image),
+                N2NImageDataset(data_dir, dataset="membrane", subdataset="membrane",transform=transform, patch_size=patch_size, patches_per_image=patches_per_image),
+                N2NImageDataset(data_dir, dataset="nucleus", subdataset="nucleus",transform=transform_nucleus, patch_size=patch_size, patches_per_image=patches_per_image)
     ]
     dataset = ConcatDataset(subdatasets)
     dataset_length = len(dataset)

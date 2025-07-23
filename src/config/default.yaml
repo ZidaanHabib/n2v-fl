@@ -6,17 +6,17 @@ data:
   num_workers: 48
   patch_size: 256
   patches_per_image: 64
-  data_dir:    
+  data_dir:  localdisk/temp_zidaan/data/preprocessed/ 
 model:
   base_channels: 32
   depth:         4
   batch_norm: true
 train:
   epochs:       100
-  weight_decay: 3e-5
+  weight_decay: 1e-5
 optimizer:
   type:         Adam
-  lr:           1e-4
+  lr:           3e-4
   betas:        [0.9, 0.999]
 hydra:
   run:
@@ -24,7 +24,3 @@ hydra:
   output_subdir: null
   job:
     chdir: false
-  hydra_logging:
-    handlers: []
-  job_logging:
-    handlers: []
