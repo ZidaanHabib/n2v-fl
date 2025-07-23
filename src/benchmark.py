@@ -35,7 +35,7 @@ def main(cfg: DictConfig):
     Path("benchmarks").mkdir(parents=True, exist_ok=True)
 
     with open("benchmarks/benchmark.txt", "w") as f:
-        f.write("Batch_size,Patch_size,Num_workers,Epoch_loss,Total_training_time\n")
+        f.write("Batch_size,Patch_size,Num_workers,Epoch_loss,Total_training_time_minutes\n")
     for batch_size in batch_sizes: 
         for patch_size in patch_sizes:
             for num_workers in num_workers_list:
@@ -60,14 +60,14 @@ def main(cfg: DictConfig):
                     running_loss   += current_loss
 
                     batch_time = time.perf_counter() - batch_start_time
-                    print(f"Batch {batch} done | Batch loss: {current_loss:.5f} | Batch time: {batch_time:.2f}")
+                    print(f"Batch {batch} done | Batch loss: {current_loss:.5f} | Batch time: {batch_time/60:.2f}")
 
                 total_time = time.perf_counter() - start_time
 
                 epoch_loss   = running_loss   / len(train_loader)
                 print(f"Train loss: {epoch_loss:.5f} ")
                 with open("benchmarks/benchmarks.txt", "a") as f:
-                    f.write(f"{batch_size},{patch_size}, {num_workers}, {epoch_loss}, {total_time:.2f}\n")
+                    f.write(f"{batch_size},{patch_size}, {num_workers}, {epoch_loss}, {(total_time/60):.2f}\n")
 
 if __name__ == "__main__":
     main()
