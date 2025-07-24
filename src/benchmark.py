@@ -30,9 +30,9 @@ def main(cfg: DictConfig):
     seed(42)
 
     # parameter options to benchmark and compare:
-    batch_sizes = [64, 128, 256]
+    batch_sizes = [8, 16, 32 ] #these are per GPU
     patch_sizes = [256, 512]
-    num_workers_list = [8, 16, 32, 48]
+    num_workers_list = [4, 8, 12, 16]
 
 
     root = Path().resolve().parent
