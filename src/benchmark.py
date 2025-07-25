@@ -20,9 +20,9 @@ def main(cfg: DictConfig):
     device = set_device()
 
     #Initialise process group
-    dist.init_process_group(backend="nccl", init_method="env://")
+    dist.init_process_group(backend="nccl", init_method="env://") # nccl is the cuda backend for multi-gpu comms, env refers to environment variables which torchrun will populate
 
-    # assign gpu to process
+    # associate cuda device to particular gpu for this process
     torch.cuda.set_device(local_rank)
 
 

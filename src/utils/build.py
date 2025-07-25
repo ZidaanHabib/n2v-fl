@@ -2,6 +2,7 @@
 from typing import Iterable, Optional, Tuple
 import torch.nn as nn
 import torch.optim 
+import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, ConcatDataset, random_split, DistributedSampler
 from torchvision.transforms import v2
@@ -130,10 +131,10 @@ def setup_optimizer(model_params: Iterable[nn.Parameter], type: str, lr: float, 
     return optim
 
 
-def train_step(model, data_loader, loss_fn, opt, device, epoch):
+def train_step(model, data_loader, loss_fn, opt, device, epoch, rank):
     model.train()
-    running_loss, running_psnr = 0.0, 0.0
-    losses = []
+    running_loss = 0.0
+    losses = torch.zeros(len(data_loader),device=device,requires_grad=False)
 
     for batch, (X, y) in enumerate(data_loader):
         
@@ -147,26 +148,27 @@ def train_step(model, data_loader, loss_fn, opt, device, epoch):
         opt.step()
 
         current_loss = loss.item()
-        losses.append(current_loss)
+        losses[batch] = current_loss
         running_loss   += current_loss
 
-        with torch.no_grad():
-            # if your data range is [0,1]; otherwise pass max_val=255
-            batch_psnr = compute_psnr(denoised, y, max_val=1.0)
-        running_psnr += batch_psnr
-        print(f"Batch {batch} done | Batch loss: {current_loss:.5f}")
+        # with torch.no_grad():
+        #     # if your data range is [0,1]; otherwise pass max_val=255
+        #     batch_psnr = compute_psnr(denoised, y, max_val=1.0)
+        # running_psnr += batch_psnr
+        print(f"Rank {rank} | Batch {batch} done | Batch loss: {current_loss:.5f}")
  
 
-    epoch_loss   = running_loss   / len(data_loader)
-    epoch_psnr = running_psnr/ len(data_loader)
-
-    print(f"Train loss: {epoch_loss:.5f} | PSNR: {epoch_psnr:.2f}")
-
+    dist.all_reduce(losses, op=dist.ReduceOp.AVG)
     if epoch % 20 == 0 or epoch == 1:
+        Path("output/current").mkdir(parents=True, exist_ok=True)
         with open(f"output/current/epoch_{epoch}_train_losses.txt", "w") as f:
             f.write(f"Epoch {epoch}\n")
-            f.writelines(f"{loss:.5f}\n" for loss in losses)
+            f.writelines(f"{loss.item():.5f}\n" for loss in losses)
 
+    epoch_loss   = running_loss   / len(data_loader)
+    # epoch_psnr = running_psnr/ len(data_loader)
+
+    print(f"Rank {rank} | Train loss: {epoch_loss:.5f} ")
     return epoch_loss
 
 def test_step(
@@ -174,14 +176,15 @@ def test_step(
     data_loader: torch.utils.data.DataLoader,
     loss_fn: torch.nn.Module,
     device: torch.device,
-    epoch: int
+    epoch: int,
+    rank: int
 ):
     # switch to eval mode
     model.eval()
 
     total_loss = 0.0
-    total_psnr  = 0.0
-    losses = []
+    # total_psnr  = 0.0
+    losses = torch.zeros(len(data_loader), device=device, requires_grad=False)
 
     # No gradients needed
     with torch.inference_mode():
@@ -195,26 +198,28 @@ def test_step(
             # Compute loss & metric (use .item() to get floats)
             loss = loss_fn(denoised, y)
             current_loss = loss.item()
-            losses.append(current_loss)
+            losses[batch] = current_loss
             total_loss += current_loss
 
-            # PSNR
-            batch_psnr = compute_psnr(denoised, y, max_val=1.0)
-            total_psnr += batch_psnr
+            # # PSNR - ignore for now
+            # batch_psnr = compute_psnr(denoised, y, max_val=1.0)
+            # total_psnr += batch_psnr
 
-            print(f"Validation Batch {batch} done | Validation batch loss: {current_loss:.5f} ")
+            print(f"Rank {rank} | Validation Batch {batch} done | Validation batch loss: {current_loss:.5f} ")
 
+    dist.all_reduce(losses, op=dist.ReduceOp.AVG)
     if epoch % 20 == 0 or epoch == 1:
+        Path("output/current").mkdir(parents=True, exist_ok=True)
         with open(f"output/current/epoch_{epoch}_test_losses.txt", "w") as f:
             f.write(f"Epoch {epoch}\n")
-            f.writelines(f"{loss:.5f}\n" for loss in losses)
+            f.writelines(f"{loss.item():.5f}\n" for loss in losses)
 
     # Average over batches
     avg_loss = total_loss / len(data_loader)
-    avg_psnr  = total_psnr  / len(data_loader)
+    # avg_psnr  = total_psnr  / len(data_loader)
 
-    print(f"Test loss: {avg_loss:.5f} | Test PSNR: {avg_psnr:.2f}\n")
-    return avg_loss, avg_psnr
+    print(f"Rank {rank} | Test loss: {avg_loss:.5f} ")
+    return avg_loss
 
 def compute_psnr(pred, target, max_val=1.0):
     mse = torch.mean((pred - target) ** 2)
