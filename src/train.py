@@ -29,7 +29,7 @@ def main(cfg: DictConfig):
     device = set_device()
     
     #instantiate model
-    model = UNet(1,cfg.model.base_channels, cfg.model.depth, batch_norm=cfg.model.batch_norm).to(device)
+    model = UNet(1,cfg.model.base_channels, cfg.model.depth, batch_norm=cfg.model.batch_norm).to(local_rank)
 
     # set up paths for data access
     root = Path().resolve().parent
