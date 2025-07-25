@@ -125,7 +125,7 @@ def main(cfg: DictConfig):
             f.writelines(f"{train_loss.item()},{test_loss.item()}\n" for (train_loss, test_loss) in zip(avg_train_losses, avg_test_losses))
         print("Done")
 
-
+    dist.destroy_process_group()
     
 
 if __name__ == "__main__":
