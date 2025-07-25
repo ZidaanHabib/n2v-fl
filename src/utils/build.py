@@ -1,9 +1,8 @@
 
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, Tuple
 import torch.nn as nn
 import torch.optim 
 import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, ConcatDataset, random_split, DistributedSampler
 from torchvision.transforms import v2
 from pathlib import Path
@@ -40,9 +39,8 @@ def distribute_model(model: nn.Module, device: torch.device) -> nn.Module :
         model = nn.DataParallel(model)
     return model.to(device)
 
-def load_dataset(data_dir: Path, batch_size: int, num_workers = 0, patch_size = 256, patches_per_image: int = 64):
+def load_dataset(data_dir: Path, batch_size: int, num_workers: int = 0, patch_size: int = 256, patches_per_image: int = 64) -> Tuple[DataLoader, DataLoader]:
    
-
     dataset =  create_dataset(data_dir, patch_size, patches_per_image)
     dataset_length = len(dataset)
     train_size = int(0.8 * dataset_length)
@@ -66,7 +64,7 @@ def load_dataset(data_dir: Path, batch_size: int, num_workers = 0, patch_size = 
     )
     return train_loader, test_loader
 
-def  create_dataset(data_dir, patch_size, patches_per_image):
+def  create_dataset(data_dir, patch_size, patches_per_image) :
     subdatasets = [ N2NImageDataset(data_dir, dataset="20x-noise1", subdataset="actin-20x-noise1",transform=transform, patch_size=patch_size, patches_per_image=patches_per_image),
                 N2NImageDataset(data_dir, dataset="20x-noise1", subdataset="mito-20x-noise1",transform=transform, patch_size=patch_size, patches_per_image=patches_per_image),
                 N2NImageDataset(data_dir, dataset="60x-noise1", subdataset="actin-60x-noise1",transform=transform, patch_size=patch_size, patches_per_image=patches_per_image),
@@ -120,7 +118,7 @@ def load_distributed_dataset(world_size: int, rank: int, data_dir: Path, batch_s
 def setup_loss():
     return nn.MSELoss()
 
-def setup_optimizer(model_params: Iterable[nn.Parameter], type: str, lr: float, betas: Optional[Tuple[float, float]] = None):
+def setup_optimizer(model_params: Iterable[nn.Parameter], type: str, lr: float, betas: Tuple[float, float] = (0.9, 0.999)):
     if type == 'Adam':
         optim = torch.optim.Adam(params=model_params,betas=betas, lr=lr)
     elif type == "SGD":
@@ -131,10 +129,10 @@ def setup_optimizer(model_params: Iterable[nn.Parameter], type: str, lr: float, 
     return optim
 
 
-def train_step(model, data_loader, loss_fn, opt, device, epoch, rank):
+def train_step(model, data_loader, loss_fn, opt, device, epoch, rank) -> torch.Tensor :
     model.train()
-    running_loss = 0.0
-    losses = torch.zeros(len(data_loader),device=device,requires_grad=False)
+    running_loss = torch.tensor(0, dtype=torch.float32, device=device, requires_grad=False)
+    losses = torch.zeros(len(data_loader),device=device,requires_grad=False) 
 
     for batch, (X, y) in enumerate(data_loader):
         
@@ -165,11 +163,11 @@ def train_step(model, data_loader, loss_fn, opt, device, epoch, rank):
             f.write(f"Epoch {epoch}\n")
             f.writelines(f"{loss.item():.5f}\n" for loss in losses)
 
-    epoch_loss   = running_loss   / len(data_loader)
+    rank_epoch_loss   = running_loss   / len(data_loader)
     # epoch_psnr = running_psnr/ len(data_loader)
 
-    print(f"Rank {rank} | Train loss: {epoch_loss:.5f} ")
-    return epoch_loss
+    print(f"Rank {rank} | Train loss: {rank_epoch_loss:.5f} ")
+    return rank_epoch_loss
 
 def test_step(
     model: torch.nn.Module,
@@ -178,11 +176,11 @@ def test_step(
     device: torch.device,
     epoch: int,
     rank: int
-):
+) -> torch.Tensor :
     # switch to eval mode
     model.eval()
 
-    total_loss = 0.0
+    total_loss = torch.tensor(0, dtype=torch.float32, device=device, requires_grad=False)
     # total_psnr  = 0.0
     losses = torch.zeros(len(data_loader), device=device, requires_grad=False)
 
@@ -215,11 +213,11 @@ def test_step(
             f.writelines(f"{loss.item():.5f}\n" for loss in losses)
 
     # Average over batches
-    avg_loss = total_loss / len(data_loader)
+    rank_avg_loss = total_loss / len(data_loader)
     # avg_psnr  = total_psnr  / len(data_loader)
 
-    print(f"Rank {rank} | Test loss: {avg_loss:.5f} ")
-    return avg_loss
+    print(f"Rank {rank} | Test loss: {rank_avg_loss:.5f} ")
+    return rank_avg_loss
 
 def compute_psnr(pred, target, max_val=1.0):
     mse = torch.mean((pred - target) ** 2)

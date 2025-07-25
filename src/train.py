@@ -3,7 +3,7 @@ import hydra
 from omegaconf import DictConfig
 
 
-from utils.build import distribute_model, load_dataset, load_distributed_dataset, setup_loss, setup_optimizer, train_step, test_step, seed, set_device
+from utils.build import load_dataset, load_distributed_dataset, setup_loss, setup_optimizer, train_step, test_step, seed, set_device
 from models.unet import UNet
 
 import torch
