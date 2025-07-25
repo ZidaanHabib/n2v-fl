@@ -6,7 +6,7 @@ data:
   num_workers: 16
   patch_size: 256
   patches_per_image: 64
-  data_dir:  localdisk/temp_zidaan/data/preprocessed/ 
+  data_dir:  /localdisk/temp_zidaan/data/preprocessed/ 
 model:
   base_channels: 32
   depth:         4
