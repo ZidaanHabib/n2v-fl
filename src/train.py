@@ -56,9 +56,9 @@ def main(cfg: DictConfig):
 
     epochs = int(cfg.train.epochs)
 
-    best_val_loss = torch.tensor(float("inf"), device=device)
-    avg_train_losses = torch.zeros(epochs, device) 
-    avg_test_losses =  torch.zeros(epochs, device)
+    best_val_loss = torch.tensor(float("inf"), device=device, requires_grad=False)
+    avg_train_losses = torch.zeros(epochs, device=device, requires_grad=False) 
+    avg_test_losses =  torch.zeros(epochs, device=device, requires_grad=False)
 
     dist.barrier() # synchronise processes before starting timer
     start_time = time.perf_counter()
