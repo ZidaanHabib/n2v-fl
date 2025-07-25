@@ -56,7 +56,7 @@ def main(cfg: DictConfig):
 
     epochs = int(cfg.train.epochs)
 
-    best_val_loss = torch.tensor(float("inf"), device)
+    best_val_loss = torch.tensor(float("inf"), device=device)
     avg_train_losses = torch.zeros(epochs, device) 
     avg_test_losses =  torch.zeros(epochs, device)
 
