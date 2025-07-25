@@ -70,14 +70,16 @@ def main(cfg: DictConfig):
             loss_fn=loss_fn,
             opt=optim,
             device=device,
-            epoch=epoch
+            epoch=epoch,
+            rank=rank
         )
 
         avg_test_loss = test_step(data_loader=test_loader,
             model=model,
             loss_fn=loss_fn,
             device=device,
-            epoch=epoch
+            epoch=epoch,
+            rank=rank
         )
         
         # Reduce train loss across different processes
