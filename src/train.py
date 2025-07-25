@@ -42,7 +42,7 @@ def main(cfg: DictConfig):
         # wrap model in DDP for distributed processing
         model = DDP(model,device_ids=[local_rank], output_device=local_rank)
         #load dataset:
-        train_loader, test_loader = load_distributed_dataset(world_size=world_size, data_dir=data_dir, batch_size=cfg.data.batch_size, num_workers=cfg.data.num_workers, patch_size=cfg.data.patch_size, patches_per_image=cfg.data.patches_per_image)
+        train_loader, test_loader = load_distributed_dataset(rank=rank, world_size=world_size, data_dir=data_dir, batch_size=cfg.data.batch_size, num_workers=cfg.data.num_workers, patch_size=cfg.data.patch_size, patches_per_image=cfg.data.patches_per_image)
     else:
         train_loader, test_loader = load_dataset(data_dir=data_dir, batch_size=cfg.data.batch_size, num_workers=cfg.data.num_workers, patch_size=cfg.data.patch_size, patches_per_image=cfg.data.patches_per_image)
 
