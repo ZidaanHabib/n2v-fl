@@ -120,7 +120,7 @@ def main(cfg: DictConfig):
                         "avg_test_loss": avg_test_loss,
                         "avg_train_loss": avg_train_loss
                     },
-                    f"runs/checkpoints/{cluster_run_dir_name}/best.pth",
+                    f"runs/{cluster_run_dir_name}/checkpoints/best.pth",
                 )
     
     dist.barrier()
