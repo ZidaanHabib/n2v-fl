@@ -63,28 +63,29 @@ def main(cfg: DictConfig):
                 print(f"Batch size: {batch_size},  Num Workers: {num_workers}")
             dist.barrier()
             start_time = time.perf_counter()
-            for batch, (X, y) in enumerate(train_loader):
-                batch_start_time = time.perf_counter() 
-                X, y = X.to(device), y.to(device)
+            for i in range(2):
+                for batch, (X, y) in enumerate(train_loader):
+                    batch_start_time = time.perf_counter() 
+                    X, y = X.to(device), y.to(device)
 
-                optim.zero_grad()
-                denoised = model(X)
-                loss   = loss_fn(denoised, y)
+                    optim.zero_grad()
+                    denoised = model(X)
+                    loss   = loss_fn(denoised, y)
 
-                loss.backward()
-                optim.step()
+                    loss.backward()
+                    optim.step()
 
-                current_loss = loss.item()
-                losses.append(current_loss)
-                running_loss   += current_loss
+                    current_loss = loss.item()
+                    losses.append(current_loss)
+                    running_loss   += current_loss
 
-                batch_time = time.perf_counter() - batch_start_time
-                print(f"Rank {rank} Batch {batch} done | Batch loss: {current_loss:.5f} | Batch time: {batch_time/60:.4f}")
+                    batch_time = time.perf_counter() - batch_start_time
+                    print(f"Rank {rank} Batch {batch} done | Batch loss: {current_loss:.5f} | Batch time: {batch_time/60:.4f}")
             
             dist.barrier()
             total_time = time.perf_counter() - start_time
 
-            epoch_loss   = running_loss   / len(train_loader)
+            epoch_loss   = running_loss   / (2*len(train_loader))
             
             if rank == 0:
                 print(f"Train time: {(total_time/60):.5f} ")
