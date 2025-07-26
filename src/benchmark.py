@@ -87,7 +87,7 @@ def main(cfg: DictConfig):
             epoch_loss   = running_loss   / len(train_loader)
             
             if rank == 0:
-                print(f"Train loss: {epoch_loss:.5f} ")
+                print(f"Train time: {(total_time/60):.5f} ")
                 with open(f"benchmarks/{cluster_run_file_name}.csv", "a") as f:
                     f.write(f"{batch_size},{num_workers}, {epoch_loss}, {(total_time/60):.4f}\n")
     
