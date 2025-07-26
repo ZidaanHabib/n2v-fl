@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 import hydra
 from omegaconf import DictConfig
 
@@ -51,8 +52,11 @@ def main(cfg: DictConfig):
     loss_fn = setup_loss()
     optim = setup_optimizer(model_params=model.parameters(), type=cfg.optimizer.type, lr=cfg.optimizer.lr, betas=cfg.optimizer.betas)
 
+    # ensure directories exist for saving
+    cluster_run_dir_name = f"cluster-run-{datetime.now().strftime("%d_%m_%Hh_%M")}"
     if rank == 0:
-        Path("checkpoints").mkdir(parents=True, exist_ok=True)
+        Path(f"checkpoints/{cluster_run_dir_name}").mkdir(parents=True, exist_ok=True)
+        Path(f"output/{cluster_run_dir_name}").mkdir(parents=True, exist_ok=True)
 
     epochs = int(cfg.train.epochs)
 
@@ -64,7 +68,8 @@ def main(cfg: DictConfig):
     start_time = time.perf_counter()
     for epoch in range(1,epochs+1):
         if rank == 0:
-            print(f"Epoch: {epoch}\n---------")
+            print(f"Epoch: {epoch}-----------------------------------------\n\n")
+        
         avg_train_loss = train_step(data_loader=train_loader, 
             model=model, 
             loss_fn=loss_fn,
@@ -92,7 +97,7 @@ def main(cfg: DictConfig):
             avg_train_losses[epoch - 1] = avg_train_loss
             # append epoch loss to running list:
             avg_test_losses[epoch - 1] = avg_test_loss
-
+               
             torch.save(
                 {
                     "epoch":       epoch,
@@ -101,7 +106,7 @@ def main(cfg: DictConfig):
                     "avg_train_loss": avg_train_loss,
                     "avg_test_loss":    avg_test_loss
                 },
-                "checkpoints/last.pth",
+                f"checkpoints/{cluster_run_dir_name}last.pth",
             )
 
             # If it’s the best so far, also save “best.pth”
@@ -113,16 +118,15 @@ def main(cfg: DictConfig):
                         "avg_test_loss": avg_test_loss,
                         "avg_train_loss": avg_train_loss
                     },
-                    "checkpoints/best.pth",
+                    f"checkpoints/{cluster_run_dir_name}best.pth",
                 )
     
     dist.barrier()
     total_time = time.perf_counter() - start_time
     if rank == 0:
         print(f"Training time: {(total_time / 60):.2f} minutes")
-
         print("Writing avg epoch losses to file...")
-        with open("output/current/epoch_losses.txt", "w") as f:
+        with open(f"output/{cluster_run_dir_name}/epoch_losses.txt", "w") as f:
             f.write("Train_loss,Test_loss\n")
             f.writelines(f"{train_loss.item()},{test_loss.item()}\n" for (train_loss, test_loss) in zip(avg_train_losses, avg_test_losses))
         print("Done")

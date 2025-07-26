@@ -1,0 +1,26 @@
+# configs/default.yaml
+seed:          42
+device:       cuda
+data:
+  batch_sizes:  [16, 20, 24]
+  num_workers: [16, 24, 32]
+  patch_size: 256
+  patches_per_image: 64
+  data_dir:  /localdisk/temp_zidaan/data/preprocessed/ 
+model:
+  base_channels: 32
+  depth:         4
+  batch_norm: true
+train:
+  epochs:       100
+  weight_decay: 1e-5
+optimizer:
+  type:         Adam
+  lr:           2e-4
+  betas:        [0.9, 0.999]
+hydra:
+  run:
+    dir: .
+  output_subdir: null
+  job:
+    chdir: false
