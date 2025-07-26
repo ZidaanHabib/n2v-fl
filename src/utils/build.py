@@ -129,7 +129,7 @@ def setup_optimizer(model_params: Iterable[nn.Parameter], type: str, lr: float, 
     return optim
 
 
-def train_step(model, data_loader, loss_fn, opt, device, epoch, rank) -> torch.Tensor :
+def train_step(model, data_loader, loss_fn, opt, device, epoch, rank, dir_name: str) -> torch.Tensor :
     model.train()
     running_loss = torch.tensor(0, dtype=torch.float32, device=device, requires_grad=False)
     losses = torch.zeros(len(data_loader),device=device,requires_grad=False) 
@@ -158,8 +158,7 @@ def train_step(model, data_loader, loss_fn, opt, device, epoch, rank) -> torch.T
 
     dist.all_reduce(losses, op=dist.ReduceOp.AVG)
     if epoch % 20 == 0 or epoch == 1:
-        Path("output/current").mkdir(parents=True, exist_ok=True)
-        with open(f"output/current/epoch_{epoch}_train_losses.txt", "w") as f:
+        with open(f"runs/{dir_name}/output/epoch_{epoch}_train_losses.txt", "w") as f:
             f.write(f"Epoch {epoch}\n")
             f.writelines(f"{loss.item():.5f}\n" for loss in losses)
 
@@ -175,7 +174,8 @@ def test_step(
     loss_fn: torch.nn.Module,
     device: torch.device,
     epoch: int,
-    rank: int
+    rank: int,
+    dir_name: str
 ) -> torch.Tensor :
     # switch to eval mode
     model.eval()
@@ -207,8 +207,7 @@ def test_step(
 
     dist.all_reduce(losses, op=dist.ReduceOp.AVG)
     if epoch % 20 == 0 or epoch == 1:
-        Path("output/current").mkdir(parents=True, exist_ok=True)
-        with open(f"output/current/epoch_{epoch}_test_losses.txt", "w") as f:
+        with open(f"runs/{dir_name}/output/epoch_{epoch}_test_losses.txt", "w") as f:
             f.write(f"Epoch {epoch}\n")
             f.writelines(f"{loss.item():.5f}\n" for loss in losses)
 
