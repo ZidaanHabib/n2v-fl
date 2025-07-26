@@ -55,8 +55,8 @@ def main(cfg: DictConfig):
     # ensure directories exist for saving
     cluster_run_dir_name = f"cluster-run-{datetime.now().strftime("%d_%m_%Hh_%M")}"
     if rank == 0:
-        Path(f"checkpoints/{cluster_run_dir_name}").mkdir(parents=True, exist_ok=True)
-        Path(f"output/{cluster_run_dir_name}").mkdir(parents=True, exist_ok=True)
+        Path(f"runs/{cluster_run_dir_name}/checkpoints").mkdir(parents=True, exist_ok=True)
+        Path(f"runs/{cluster_run_dir_name}/output").mkdir(parents=True, exist_ok=True)
 
     epochs = int(cfg.train.epochs)
 
@@ -76,7 +76,8 @@ def main(cfg: DictConfig):
             opt=optim,
             device=device,
             epoch=epoch,
-            rank=rank
+            rank=rank,
+            dir_name=cluster_run_dir_name
         )
 
         avg_test_loss = test_step(data_loader=test_loader,
@@ -84,7 +85,8 @@ def main(cfg: DictConfig):
             loss_fn=loss_fn,
             device=device,
             epoch=epoch,
-            rank=rank
+            rank=rank,
+            dir_name=cluster_run_dir_name
         )
         
         # Reduce train loss across different processes
@@ -106,7 +108,7 @@ def main(cfg: DictConfig):
                     "avg_train_loss": avg_train_loss,
                     "avg_test_loss":    avg_test_loss
                 },
-                f"checkpoints/{cluster_run_dir_name}last.pth",
+                f"runs/{cluster_run_dir_name}/checkpoints/last.pth",
             )
 
             # If it’s the best so far, also save “best.pth”
@@ -118,7 +120,7 @@ def main(cfg: DictConfig):
                         "avg_test_loss": avg_test_loss,
                         "avg_train_loss": avg_train_loss
                     },
-                    f"checkpoints/{cluster_run_dir_name}best.pth",
+                    f"runs/checkpoints/{cluster_run_dir_name}/best.pth",
                 )
     
     dist.barrier()
@@ -126,7 +128,7 @@ def main(cfg: DictConfig):
     if rank == 0:
         print(f"Training time: {(total_time / 60):.2f} minutes")
         print("Writing avg epoch losses to file...")
-        with open(f"output/{cluster_run_dir_name}/epoch_losses.txt", "w") as f:
+        with open(f"runs/{cluster_run_dir_name}/output/epoch_losses.txt", "w") as f:
             f.write("Train_loss,Test_loss\n")
             f.writelines(f"{train_loss.item()},{test_loss.item()}\n" for (train_loss, test_loss) in zip(avg_train_losses, avg_test_losses))
         print("Done")
