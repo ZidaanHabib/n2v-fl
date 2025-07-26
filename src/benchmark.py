@@ -79,7 +79,7 @@ def main(cfg: DictConfig):
                 running_loss   += current_loss
 
                 batch_time = time.perf_counter() - batch_start_time
-                print(f"Rank {rank} Batch {batch} done | Batch loss: {current_loss:.5f} | Batch time: {batch_time/60:.2f}")
+                print(f"Rank {rank} Batch {batch} done | Batch loss: {current_loss:.5f} | Batch time: {batch_time/60:.4f}")
             
             dist.barrier()
             total_time = time.perf_counter() - start_time
@@ -89,7 +89,7 @@ def main(cfg: DictConfig):
             if rank == 0:
                 print(f"Train loss: {epoch_loss:.5f} ")
                 with open(f"benchmarks/{cluster_run_file_name}.csv", "a") as f:
-                    f.write(f"{batch_size},{num_workers}, {epoch_loss}, {(total_time/60):.2f}\n")
+                    f.write(f"{batch_size},{num_workers}, {epoch_loss}, {(total_time/60):.4f}\n")
     
     dist.destroy_process_group()
 
