@@ -53,7 +53,7 @@ def main(cfg: DictConfig):
     optim = setup_optimizer(model_params=model.parameters(), type=cfg.optimizer.type, lr=cfg.optimizer.lr, betas=cfg.optimizer.betas)
 
     # ensure directories exist for saving
-    cluster_run_dir_name = f"cluster-run-{datetime.now().strftime("%d_%m_%Hh_%M")}"
+    cluster_run_dir_name = f"cluster-run-{datetime.now().strftime("%d_%m_%Hh%M")}"
     if rank == 0:
         Path(f"runs/{cluster_run_dir_name}/checkpoints").mkdir(parents=True, exist_ok=True)
         Path(f"runs/{cluster_run_dir_name}/output").mkdir(parents=True, exist_ok=True)
