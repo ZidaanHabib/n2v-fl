@@ -12,7 +12,7 @@ from data.dataset import N2NImageDataset
 # define transforms for dataset
 transform_confocal = v2.Compose([
     v2.ToImage(),
-    v2.ConvertImageDtype(torch.float32),
+    v2.ConvertImageDtype(torch.float32,),
     v2.Pad(padding=512, padding_mode='reflect'),
 ])
 
@@ -27,6 +27,27 @@ transform = v2.Compose([
     v2.ToImage(),
     v2.ConvertImageDtype(torch.float32),
 ])
+transform_confocal_rot = v2.Compose([
+    v2.ToImage(),
+    v2.RandomRotation((90,90)),
+    v2.ConvertImageDtype(torch.float32,),
+    v2.Pad(padding=512, padding_mode='reflect'),
+])
+
+transform_nucleus_rot = v2.Compose([
+    v2.ToImage(),
+    v2.RandomRotation((90,90)),
+    v2.ConvertImageDtype(torch.float32),
+    v2.Pad(padding=256,padding_mode="reflect"),
+    v2.Pad(padding=512,padding_mode="reflect"), 
+    
+])
+
+transform_rot = v2.Compose([
+    v2.ToImage(),
+    v2.RandomRotation((90,90)),
+    v2.ConvertImageDtype(torch.float32),
+])
 
 def set_device():
     device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu" )
@@ -39,14 +60,15 @@ def distribute_model(model: nn.Module, device: torch.device) -> nn.Module :
         model = nn.DataParallel(model)
     return model.to(device)
 
-def load_dataset(data_dir: Path, batch_size: int, num_workers: int = 0, patch_size: int = 256, patches_per_image: int = 64) -> Tuple[DataLoader, DataLoader]:
+def load_dataset(data_dir: Path, batch_size: int, num_workers: int = 0, patch_size: int = 256, patches_per_image: int = 64, seed: int = 42) -> Tuple[DataLoader, DataLoader]:
    
     dataset =  create_dataset(data_dir, patch_size, patches_per_image)
     dataset_length = len(dataset)
-    train_size = int(0.8 * dataset_length)
+    train_size = int(0.9 * dataset_length)
     test_size = dataset_length - train_size
 
-    train_dataset, test_dataset = random_split(dataset, (train_size,test_size))
+    gen = torch.Generator().manual_seed(seed)
+    train_dataset, test_dataset = random_split(dataset, (train_size,test_size), generator=gen)
 
     train_loader = DataLoader(
         train_dataset,
@@ -75,22 +97,34 @@ def  create_dataset(data_dir, patch_size, patches_per_image) :
                 N2NImageDataset(data_dir, dataset="confocal", subdataset="mito-confocal",transform=transform_confocal, patch_size=patch_size, patches_per_image=patches_per_image),
                 N2NImageDataset(data_dir, dataset="membrane", subdataset="membrane",transform=transform, patch_size=patch_size, patches_per_image=patches_per_image),
                 N2NImageDataset(data_dir, dataset="nucleus", subdataset="nucleus",transform=transform_nucleus, patch_size=patch_size, patches_per_image=patches_per_image)
+                # N2NImageDataset(data_dir, dataset="20x-noise1", subdataset="actin-20x-noise1",transform=transform_rot, patch_size=patch_size, patches_per_image=patches_per_image),
+                # N2NImageDataset(data_dir, dataset="20x-noise1", subdataset="mito-20x-noise1",transform=transform_rot, patch_size=patch_size, patches_per_image=patches_per_image),
+                # N2NImageDataset(data_dir, dataset="60x-noise1", subdataset="actin-60x-noise1",transform=transform_rot, patch_size=patch_size, patches_per_image=patches_per_image),
+                # N2NImageDataset(data_dir, dataset="60x-noise1", subdataset="mito-60x-noise1",transform=transform_rot, patch_size=patch_size, patches_per_image=patches_per_image),
+                # N2NImageDataset(data_dir, dataset="60x-noise2", subdataset="actin-60x-noise2",transform=transform_rot, patch_size=patch_size, patches_per_image=patches_per_image),
+                # N2NImageDataset(data_dir, dataset="60x-noise2", subdataset="mito-60x-noise2",transform=transform_rot, patch_size=patch_size, patches_per_image=patches_per_image),
+                # N2NImageDataset(data_dir, dataset="confocal", subdataset="actin-confocal",transform=transform_confocal_rot, patch_size=patch_size, patches_per_image=patches_per_image),
+                # N2NImageDataset(data_dir, dataset="confocal", subdataset="mito-confocal",transform=transform_confocal_rot, patch_size=patch_size, patches_per_image=patches_per_image),
+                # N2NImageDataset(data_dir, dataset="membrane", subdataset="membrane",transform=transform_rot, patch_size=patch_size, patches_per_image=patches_per_image),
+                # N2NImageDataset(data_dir, dataset="nucleus", subdataset="nucleus",transform=transform_nucleus_rot, patch_size=patch_size, patches_per_image=patches_per_image)
     ]
     dataset = ConcatDataset(subdatasets)
     return dataset
 
-def load_distributed_dataset(world_size: int, rank: int, data_dir: Path, batch_size: int, num_workers: int, patch_size: int, patches_per_image: int):
+def load_distributed_dataset(world_size: int, rank: int, data_dir: Path, batch_size: int, num_workers: int, patch_size: int, patches_per_image: int, seed: int = 42):
     dataset = create_dataset(data_dir, patch_size, patches_per_image)
     dataset_length = len(dataset)
-    train_size = int(0.8 * dataset_length)
+    train_size = int(0.9 * dataset_length)
     test_size = dataset_length - train_size
+    
+    gen = torch.Generator().manual_seed(seed)
 
-    train_dataset, test_dataset = random_split(dataset, (train_size,test_size))
+    train_dataset, test_dataset = random_split(dataset, (train_size,test_size), gen)
     train_sampler = DistributedSampler(
         train_dataset,
         num_replicas=world_size,
         rank=rank,
-        shuffle=True
+        shuffle=True,
     )
     test_sampler = DistributedSampler(
         test_dataset,
