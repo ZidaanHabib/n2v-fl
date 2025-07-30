@@ -50,9 +50,9 @@ class N2NSyntheticImageDataset(Dataset):
     
     def __getitem__(self, index):
         img_index = (index // self.patches_per_image )
-        image = self.transform(io.decode_image(self.image_dir / f"{self.subdataset}-noisy-first-{img_index}.png", mode=io.ImageReadMode.GRAY))
-        target = self.transform(io.decode_image(self.image_dir/ f"{self.subdataset}-noisy-second-{img_index}.png", mode=io.ImageReadMode.GRAY))
-        clean = self.transform(io.decode_image(self.image_dir/ f"{self.subdataset}-clean-{img_index}.png", mode=io.ImageReadMode.GRAY))
+        image = self.transform(io.decode_image(self.image_dir / f"{self.subdataset}-{img_index}-noisy-first.png", mode=io.ImageReadMode.GRAY))
+        target = self.transform(io.decode_image(self.image_dir/ f"{self.subdataset}-{img_index}-noisy-second.png", mode=io.ImageReadMode.GRAY))
+        clean = self.transform(io.decode_image(self.image_dir/ f"{self.subdataset}-{img_index}-clean.png", mode=io.ImageReadMode.GRAY))
         top, left, height, width = v2.RandomCrop(self.patch_size).get_params(image,(self.patch_size,self.patch_size))
         image_patch = F.crop(image, top, left, height, width)
         target_patch = F.crop(target, top, left, height, width)
