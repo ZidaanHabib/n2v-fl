@@ -46,7 +46,7 @@ class N2NSyntheticImageDataset(Dataset):
         self.patches_per_image = patches_per_image
     
     def __len__(self):
-        return sum(self.patches_per_image for path in self.image_dir.iterdir() if path.is_file()) # count number of images in directory
+        return sum(self.patches_per_image for path in self.image_dir.iterdir() if path.is_file() and path.name.endswith("-clean.png")) # count number of images in directory
     
     def __getitem__(self, index):
         img_index = (index // self.patches_per_image )
