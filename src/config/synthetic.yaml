@@ -6,8 +6,8 @@ data:
   num_workers: 16
   patch_size: 256
   patches_per_image: 128
-  has_ground_truth: true
-  data_dir:  /localdisk/temp_zidaan/data/synthetic/ 
+  has_ground_truth: false
+  data_dir:  /localdisk/temp_zidaan/data/preprocessed/ 
 model:
   base_channels: 32
   depth:         4
