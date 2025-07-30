@@ -16,4 +16,5 @@ dependencies:
   - tqdm
   - hydra-core
   - cudatoolkit=11.8   
+  - torchinfo
 prefix: /opt/homebrew/Caskroom/miniconda/base/envs/n2v_fl
