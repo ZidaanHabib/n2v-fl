@@ -17,7 +17,7 @@ from pathlib import Path
 
 from utils.n2v import load_dataset, load_distributed_dataset, test_step, train_step
 
-@hydra.main(version_base=None, config_path="config", config_name="default")
+@hydra.main(version_base=None, config_path="config", config_name="n2v")
 def main(cfg: DictConfig):
 
     # read environment variables
