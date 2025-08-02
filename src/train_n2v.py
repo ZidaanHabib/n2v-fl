@@ -134,7 +134,7 @@ def perform_model_training(rank, device, model, train_loader, test_loader, loss_
                     "avg_train_psnr": avg_train_psnr,
                     "avg_test_psnr": avg_test_psnr
                 },
-                f"runs/{cluster_run_dir_name}/checkpoints/last.pth",
+                f"runs/n2v/{cluster_run_dir_name}/checkpoints/last.pth",
             )
 
             # If it’s the best so far, also save “best.pth”
@@ -148,7 +148,7 @@ def perform_model_training(rank, device, model, train_loader, test_loader, loss_
                         "avg_train_psnr": avg_train_psnr,
                         "avg_test_psnr": avg_test_psnr
                     },
-                    f"runs/{cluster_run_dir_name}/checkpoints/best.pth",
+                    f"runs/n2v/{cluster_run_dir_name}/checkpoints/best.pth",
                 )
         
     dist.barrier()
