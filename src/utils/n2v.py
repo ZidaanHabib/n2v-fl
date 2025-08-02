@@ -130,7 +130,7 @@ def mask_batch(patches: torch.Tensor, num_masks: int) :
 
     #replace each target with random pixel 
     rand = torch.randint(0, total-1, (B, num_masks), device=device)
-    neighbour_flat = rand + (rand >= target_flat).to(torch.float32) # (B, num_masks)
+    neighbour_flat = rand + (rand >= target_flat).to(torch.long) # (B, num_masks)
 
     neighbour_flat_exp = neighbour_flat.unsqueeze(1) # adding channel dimension (B,1, num_masks)
     neighbour_vals = torch.gather(input=patches_flat, dim=2, index=neighbour_flat_exp)
