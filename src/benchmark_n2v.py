@@ -33,7 +33,7 @@ def main(cfg: DictConfig):
     # parameter options to benchmark and compare (from config):
     batch_sizes = cfg.data.batch_sizes #these are per GPU
     patch_sizes = cfg.data.patch_sizes
-    patches_per_image = cfg.patches_per_image
+    patches_per_image = cfg.data.patches_per_image
 
     num_workers = cfg.data.num_workers
 
@@ -60,7 +60,6 @@ def main(cfg: DictConfig):
     for batch_size in batch_sizes: 
         for (patch_size, num_patches) in zip(patch_sizes, patches_per_image):
             train_loader, test_loader = load_distributed_dataset(world_size, rank, data_dir, batch_size, 16, patch_size, num_patches, has_ground_truth=False)
-            print("Dataset loadded")
 
             running_loss = torch.tensor(0, dtype=torch.float32, device=device, requires_grad=False)
             losses = torch.zeros(len(train_loader),device=device,requires_grad=False) 
