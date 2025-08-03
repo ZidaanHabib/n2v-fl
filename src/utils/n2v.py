@@ -163,11 +163,12 @@ def train_step(model, data_loader, loss_fn, opt, device, epoch, rank, dir_name: 
     
     for batch_idx, (patches, clean) in enumerate(data_loader):
 
+        # send to device
+        patches, clean = patches.to(device), clean.to(device)
+        
         # perform masking
         X, y, mask = mask_batch(patches, num_masks)
         
-        X, y, mask = X.to(device), y.to(device), mask.to(device)
-
         opt.zero_grad()
         denoised = model(X)
         loss   = loss_fn(denoised[mask], y[mask])
@@ -226,11 +227,11 @@ def test_step(
     with torch.inference_mode():
         for batch, (patches, clean) in enumerate(data_loader):
 
+            # send to device
+            patches, clean = patches.to(device), clean.to(device)
+
             # perform masking
             X, y, mask = mask_batch(patches, num_masks)
-
-            # Send data to the same device
-            X, y, mask = X.to(device), y.to(device), mask.to(device)
 
             # Forward pass
             denoised = model(X)
