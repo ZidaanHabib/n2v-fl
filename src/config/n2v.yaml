@@ -5,7 +5,7 @@ data:
   batch_size:  24
   num_workers: 16
   patch_size: 64
-  patches_per_image: 128
+  patches_per_image: 64
   num_masks: 64
   has_ground_truth: false
   data_dir:  /localdisk/temp_zidaan/data/preprocessed/ 
