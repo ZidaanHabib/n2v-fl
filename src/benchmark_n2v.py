@@ -12,7 +12,7 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from pathlib import Path
 
-@hydra.main(version_base=None, config_path="config", config_name="benchmark")
+@hydra.main(version_base=None, config_path="config", config_name="benchmark_n2v")
 def main(cfg: DictConfig):
 
     local_rank = int(os.environ["LOCAL_RANK"])
