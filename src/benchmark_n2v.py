@@ -59,7 +59,7 @@ def main(cfg: DictConfig):
 
     for batch_size in batch_sizes: 
         for (patch_size, num_patches) in zip(patch_sizes, patches_per_image):
-            train_loader, test_loader = load_distributed_dataset(world_size, rank, data_dir, batch_size, 16, patch_size, num_patches, has_ground_truth=False)
+            train_loader, test_loader = load_distributed_dataset(world_size, rank, data_dir, batch_size, num_workers, patch_size, num_patches, has_ground_truth=False)
 
             running_loss = torch.tensor(0, dtype=torch.float32, device=device, requires_grad=False)
             losses = torch.zeros(len(train_loader),device=device,requires_grad=False) 
@@ -67,7 +67,7 @@ def main(cfg: DictConfig):
             psnr_list = torch.zeros(len(train_loader), device=device, requires_grad=False)
 
             if rank == 0:
-                print(f"Batch size: {batch_size},  Num Workers: {num_workers}")
+                print(f"Batch size: {batch_size},  Patch Size: {patch_size}, Patches per img: {num_patches} ")
             dist.barrier()
             start_time = time.perf_counter()
             for i in range(2):
