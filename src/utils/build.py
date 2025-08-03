@@ -239,7 +239,7 @@ def train_step_synthetic(model, data_loader, loss_fn, opt, device, epoch, rank, 
         running_loss   += current_loss
 
         with torch.inference_mode():
-            current_psnr = compute_psnr(denoised, y, clean, 1.0).item()
+            current_psnr = compute_psnr(denoised, clean, 1.0).item()
         psnr_list[batch] = current_psnr
         running_psnr += current_psnr
 
@@ -344,7 +344,7 @@ def test_step_synthetic(
             losses[batch] = current_loss
             total_loss += current_loss
 
-            batch_psnr = compute_psnr(denoised, y, clean, max_val=1.0).item()
+            batch_psnr = compute_psnr(denoised, clean, max_val=1.0).item()
             psnr_list[batch] = batch_psnr
             total_psnr += batch_psnr
 
@@ -368,8 +368,8 @@ def test_step_synthetic(
     print(f"Rank {rank}, Epoch {epoch} | Avg Epoch Test loss: {rank_avg_loss:.5f} | Avg Epoch Test PSNR: {rank_avg_psnr} ")
     return rank_avg_loss, rank_avg_psnr
 
-def compute_psnr(pred, target, clean, max_val=1.0):
-    mse = torch.mean((pred - target) ** 2)
+def compute_psnr(pred, clean, max_val=1.0):
+    mse = torch.mean((pred - clean) ** 2)
     mse = torch.clamp(mse, min=1e-10) # prevent log(infinity) issues
     return 10 * torch.log10(max_val**2 / mse)
 

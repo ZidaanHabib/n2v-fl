@@ -180,7 +180,7 @@ def train_step(model, data_loader, loss_fn, opt, device, epoch, rank, dir_name: 
         running_loss   += current_loss
 
         with torch.inference_mode():
-            current_psnr = compute_psnr(denoised, y, clean, 1.0).item()
+            current_psnr = compute_psnr(denoised, clean, 1.0).item()
         psnr_list[batch_idx] = current_psnr
         running_psnr += current_psnr
 
@@ -241,7 +241,7 @@ def test_step(
             losses[batch] = current_loss
             total_loss += current_loss
 
-            batch_psnr = compute_psnr(denoised, y, clean, max_val=1.0).item()
+            batch_psnr = compute_psnr(denoised, clean, max_val=1.0).item()
             psnr_list[batch] = batch_psnr
             total_psnr += batch_psnr
 
