@@ -185,7 +185,7 @@ def train_step(model, data_loader, loss_fn, opt, device, epoch, rank, dir_name: 
         running_psnr += current_psnr
 
 
-        print(f"Epoch {epoch} | Rank {rank} | Batch {batch_idx} done | Batch loss: {current_loss:.5f} | Batch PSNR: {current_psnr}")
+        print(f"Epoch {epoch} | Rank {rank} | Batch {batch_idx} done | Batch loss: {current_loss:.5f} | Batch PSNR: {current_psnr:.3f}")
     
 
     dist.all_reduce(losses, op=dist.ReduceOp.AVG)
@@ -197,7 +197,7 @@ def train_step(model, data_loader, loss_fn, opt, device, epoch, rank, dir_name: 
                 f.writelines(f"{loss.item():.5f}\n" for loss in losses)
             with open(f"runs/n2v/{dir_name}/output/epoch_{epoch}_train_psnr.txt", "w") as f:
                 f.write(f"Epoch {epoch}\n")
-                f.writelines(f"{psnr.item():.2f}\n" for psnr in psnr_list)
+                f.writelines(f"{psnr.item():.3f}\n" for psnr in psnr_list)
 
     rank_epoch_loss   = running_loss   / len(data_loader)
     rank_epoch_psnr = running_psnr/ len(data_loader)
@@ -245,7 +245,7 @@ def test_step(
             psnr_list[batch] = batch_psnr
             total_psnr += batch_psnr
 
-            print(f" Epoch {epoch} | Rank {rank} | Validation Batch {batch} done | Validation batch loss: {current_loss:.5f} | PSNR: {batch_psnr}")
+            print(f" Epoch {epoch} | Rank {rank} | Validation Batch {batch} done | Validation batch loss: {current_loss:.5f} | PSNR: {batch_psnr:.3f}")
 
     dist.all_reduce(losses, op=dist.ReduceOp.AVG)
     dist.all_reduce(psnr_list, op=dist.ReduceOp.AVG)
@@ -256,7 +256,7 @@ def test_step(
                 f.writelines(f"{loss.item():.5f}\n" for loss in losses)
             with open(f"runs/n2v/{dir_name}/output/epoch_{epoch}_test_psnr.txt", "w") as f:
                 f.write(f"Epoch {epoch}\n")
-                f.writelines(f"{psnr.item():.2f}\n" for psnr in psnr_list)
+                f.writelines(f"{psnr.item():.3f}\n" for psnr in psnr_list)
 
     # Average over batches
     rank_avg_loss = total_loss / len(data_loader)

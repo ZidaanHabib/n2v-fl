@@ -158,12 +158,12 @@ def perform_model_training(rank, device, model, train_loader, test_loader, loss_
         print("Writing avg epoch losses to file...")
         with open(f"runs/n2v/{cluster_run_dir_name}/output/epoch_losses.txt", "w") as f:
             f.write("Train_loss,Test_loss\n")
-            f.writelines(f"{train_loss},{test_loss}\n" for (train_loss, test_loss) in zip(avg_train_losses, avg_test_losses))
+            f.writelines(f"{train_loss:.5f},{test_loss:.5f}\n" for (train_loss, test_loss) in zip(avg_train_losses, avg_test_losses))
         print("Done")
         print("Writing avg epoch psnr values to file...")
         with open(f"runs/n2v/{cluster_run_dir_name}/output/epoch_psnr_values.txt", "w") as f:
             f.write("Train_psnr,Test_psnr\n")
-            f.writelines(f"{train_psnr},{test_psnr}\n" for (train_psnr, test_psnr) in zip(avg_train_psnr_values, avg_test_psnr_values))
+            f.writelines(f"{train_psnr:.3f},{test_psnr:.3f}\n" for (train_psnr, test_psnr) in zip(avg_train_psnr_values, avg_test_psnr_values))
         print("Done")
     
 
