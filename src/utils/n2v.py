@@ -101,14 +101,16 @@ def load_distributed_dataset(world_size: int, rank: int, data_dir: Path, batch_s
         batch_size=batch_size,
         sampler=train_sampler,
         num_workers=num_workers,
-        pin_memory=True
+        pin_memory=True,
+        drop_last=True
     )
     test_loader = DataLoader(
         test_dataset,
         batch_size=batch_size,
         sampler=test_sampler,
         num_workers=num_workers,
-        pin_memory=True
+        pin_memory=True,
+        drop_last=True
     )
     return train_loader, test_loader
 
