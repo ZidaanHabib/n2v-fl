@@ -88,12 +88,14 @@ def load_distributed_dataset(world_size: int, rank: int, data_dir: Path, batch_s
         num_replicas=world_size,
         rank=rank,
         shuffle=True,
+        drop_last=True
     )
     test_sampler = DistributedSampler(
         test_dataset,
         num_replicas=world_size,
         rank=rank,
-        shuffle=False
+        shuffle=False,
+        drop_last=True
     )
 
     train_loader = DataLoader(
@@ -101,16 +103,14 @@ def load_distributed_dataset(world_size: int, rank: int, data_dir: Path, batch_s
         batch_size=batch_size,
         sampler=train_sampler,
         num_workers=num_workers,
-        pin_memory=True,
-        drop_last=True
+        pin_memory=True
     )
     test_loader = DataLoader(
         test_dataset,
         batch_size=batch_size,
         sampler=test_sampler,
         num_workers=num_workers,
-        pin_memory=True,
-        drop_last=True
+        pin_memory=True
     )
     return train_loader, test_loader
 
