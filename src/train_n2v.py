@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 
 from utils.build import  seed, set_device, setup_loss, setup_optimizer
@@ -62,6 +62,7 @@ def main(cfg: DictConfig):
     if rank == 0:
         Path(f"runs/n2v/{cluster_run_dir_name}/checkpoints").mkdir(parents=True, exist_ok=True)
         Path(f"runs/n2v/{cluster_run_dir_name}/output").mkdir(parents=True, exist_ok=True)
+        OmegaConf.save(cfg,f"runs/n2v/{cluster_run_dir_name}/run_params.yaml")
 
     epochs = int(cfg.train.epochs)
     num_masks = int(cfg.data.num_masks)
