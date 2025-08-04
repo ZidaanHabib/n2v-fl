@@ -151,7 +151,7 @@ def mask_batch(patches: torch.Tensor, num_masks: int) :
     mask_flat[batch_idx, target_flat] = True  # (B, total)
     mask = mask_flat.view(B, 1, H, W)
 
-    return patches, corrupted, mask  # target is original
+    return corrupted, patches, mask  # target is original
 
 
 def train_step(model, data_loader, loss_fn, opt, device, epoch, rank, dir_name: str, num_masks: int) -> Tuple[torch.Tensor, torch.Tensor] :
