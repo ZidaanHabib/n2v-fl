@@ -1,10 +1,10 @@
 import time
 from datetime import datetime
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 
-from utils.build import load_dataset, load_distributed_dataset, setup_loss, setup_optimizer, test_step_synthetic, train_step, test_step, seed, set_device, train_step_synthetic
+from utils.build import  seed, set_device, setup_loss, setup_optimizer
 from models.unet import UNet
 
 import torch
@@ -15,7 +15,9 @@ import os
 
 from pathlib import Path
 
-@hydra.main(version_base=None, config_path="config", config_name="default")
+from utils.n2v import load_dataset, load_distributed_dataset, test_step, train_step
+
+@hydra.main(version_base=None, config_path="config", config_name="n2v")
 def main(cfg: DictConfig):
 
     # read environment variables
@@ -58,97 +60,21 @@ def main(cfg: DictConfig):
     # ensure directories exist for saving
     cluster_run_dir_name = f"cluster-run-{datetime.now().strftime("%d_%m_%Hh%M")}"
     if rank == 0:
-        Path(f"runs/{cluster_run_dir_name}/checkpoints").mkdir(parents=True, exist_ok=True)
-        Path(f"runs/{cluster_run_dir_name}/output").mkdir(parents=True, exist_ok=True)
+        Path(f"runs/n2v/{cluster_run_dir_name}/checkpoints").mkdir(parents=True, exist_ok=True)
+        Path(f"runs/n2v/{cluster_run_dir_name}/output").mkdir(parents=True, exist_ok=True)
+        OmegaConf.save(cfg,f"runs/n2v/{cluster_run_dir_name}/run_params.yaml")
 
     epochs = int(cfg.train.epochs)
-
-
-    
+    num_masks = int(cfg.data.num_masks)
 
     dist.barrier() # synchronise processes before starting timer
     start_time = time.perf_counter()
-    if has_ground_truth:
-        perform_synthetic_model_training(rank, device, model,train_loader, test_loader, loss_fn, optim, cluster_run_dir_name, epochs, start_time)
-    else:
-        perform_model_training(rank, device, model, train_loader, test_loader, loss_fn, optim, cluster_run_dir_name, epochs, start_time)
+    perform_model_training(rank, device, model, train_loader, test_loader, loss_fn, optim, cluster_run_dir_name, epochs, num_masks, start_time)
 
     dist.destroy_process_group()
 
-def perform_model_training(rank, device, model, train_loader, test_loader, loss_fn, optim, cluster_run_dir_name, epochs, start_time):
+def perform_model_training(rank, device, model, train_loader, test_loader, loss_fn, optim, cluster_run_dir_name, epochs, num_masks, start_time):
 
-    best_val_loss = torch.tensor(float("inf"), device=device, requires_grad=False)
-    avg_train_losses = torch.zeros(epochs, device=device, requires_grad=False) 
-    avg_test_losses =  torch.zeros(epochs, device=device, requires_grad=False)
-
-    for epoch in range(1,epochs+1):
-        if rank == 0:
-            print(f"Epoch: {epoch}-----------------------------------------\n\n")
-        
-        avg_train_loss = train_step(data_loader=train_loader, 
-            model=model, 
-            loss_fn=loss_fn,
-            opt=optim,
-            device=device,
-            epoch=epoch,
-            rank=rank,
-            dir_name=cluster_run_dir_name,
-        )
-
-        avg_test_loss = test_step(data_loader=test_loader,
-            model=model,
-            loss_fn=loss_fn,
-            device=device,
-            epoch=epoch,
-            rank=rank,
-            dir_name=cluster_run_dir_name,
-        )
-        
-        # Reduce train loss across different processes
-        dist.all_reduce(avg_train_loss, op=dist.ReduceOp.AVG)
-        dist.all_reduce(avg_test_loss,op=dist.ReduceOp.AVG)
-
-
-        if rank == 0:
-            # append epoch loss to running list: 
-            avg_train_losses[epoch - 1] = avg_train_loss
-            # append epoch loss to running list:
-            avg_test_losses[epoch - 1] = avg_test_loss
-            
-            torch.save(
-                {
-                    "epoch":       epoch,
-                    "model_state": model.state_dict(),
-                    "optim_state": optim.state_dict(),
-                    "avg_train_loss": avg_train_loss,
-                    "avg_test_loss":    avg_test_loss
-                },
-                f"runs/{cluster_run_dir_name}/checkpoints/last.pth",
-            )
-
-            # If it’s the best so far, also save “best.pth”
-            if avg_test_loss < best_val_loss:
-                best_val_loss = avg_test_loss
-                torch.save(
-                    {
-                        "model_state": model.state_dict(),  # you can omit optimizer if only inference
-                        "avg_test_loss": avg_test_loss,
-                        "avg_train_loss": avg_train_loss
-                    },
-                    f"runs/{cluster_run_dir_name}/checkpoints/best.pth",
-                )
-        
-    dist.barrier()
-    total_time = time.perf_counter() - start_time
-    if rank == 0:
-        print(f"Training time: {(total_time / 60):.2f} minutes")
-        print("Writing avg epoch losses to file...")
-        with open(f"runs/{cluster_run_dir_name}/output/epoch_losses.txt", "w") as f:
-            f.write("Train_loss,Test_loss\n")
-            f.writelines(f"{train_loss.item()},{test_loss.item()}\n" for (train_loss, test_loss) in zip(avg_train_losses, avg_test_losses))
-        print("Done")
-    
-def perform_synthetic_model_training(rank, device, model, train_loader, test_loader, loss_fn, optim, cluster_run_dir_name, epochs, start_time):
     #Initialise
     best_val_loss = torch.tensor(float("inf"), device=device, requires_grad=False)
     avg_train_losses = []
@@ -160,7 +86,7 @@ def perform_synthetic_model_training(rank, device, model, train_loader, test_loa
         if rank == 0:
             print(f"Epoch: {epoch}-----------------------------------------\n\n")
         
-        avg_train_loss, avg_train_psnr = train_step_synthetic(data_loader=train_loader, 
+        avg_train_loss, avg_train_psnr = train_step(data_loader=train_loader, 
             model=model, 
             loss_fn=loss_fn,
             opt=optim,
@@ -168,21 +94,23 @@ def perform_synthetic_model_training(rank, device, model, train_loader, test_loa
             epoch=epoch,
             rank=rank,
             dir_name=cluster_run_dir_name,
+            num_masks=num_masks
         )
 
-        avg_test_loss, avg_test_psnr = test_step_synthetic(data_loader=test_loader,
+        avg_test_loss, avg_test_psnr = test_step(data_loader=test_loader,
             model=model,
             loss_fn=loss_fn,
             device=device,
             epoch=epoch,
             rank=rank,
             dir_name=cluster_run_dir_name,
+            num_masks=num_masks
         )
         
         # Reduce train loss across different processes
         dist.all_reduce(avg_train_loss, op=dist.ReduceOp.AVG)
         dist.all_reduce(avg_test_loss,op=dist.ReduceOp.AVG)
-        
+
         # Reduce psnr across different processes
         dist.all_reduce(avg_train_psnr, op=dist.ReduceOp.AVG)
         dist.all_reduce(avg_test_psnr, op=dist.ReduceOp.AVG)
@@ -207,7 +135,7 @@ def perform_synthetic_model_training(rank, device, model, train_loader, test_loa
                     "avg_train_psnr": avg_train_psnr,
                     "avg_test_psnr": avg_test_psnr
                 },
-                f"runs/{cluster_run_dir_name}/checkpoints/last.pth",
+                f"runs/n2v/{cluster_run_dir_name}/checkpoints/last.pth",
             )
 
             # If it’s the best so far, also save “best.pth”
@@ -221,7 +149,7 @@ def perform_synthetic_model_training(rank, device, model, train_loader, test_loa
                         "avg_train_psnr": avg_train_psnr,
                         "avg_test_psnr": avg_test_psnr
                     },
-                    f"runs/{cluster_run_dir_name}/checkpoints/best.pth",
+                    f"runs/n2v/{cluster_run_dir_name}/checkpoints/best.pth",
                 )
         
     dist.barrier()
@@ -229,15 +157,16 @@ def perform_synthetic_model_training(rank, device, model, train_loader, test_loa
     if rank == 0:
         print(f"Training time: {(total_time / 60):.2f} minutes")
         print("Writing avg epoch losses to file...")
-        with open(f"runs/{cluster_run_dir_name}/output/epoch_losses.txt", "w") as f:
+        with open(f"runs/n2v/{cluster_run_dir_name}/output/epoch_losses.txt", "w") as f:
             f.write("Train_loss,Test_loss\n")
-            f.writelines(f"{train_loss},{test_loss}\n" for (train_loss, test_loss) in zip(avg_train_losses, avg_test_losses))
+            f.writelines(f"{train_loss:.5f},{test_loss:.5f}\n" for (train_loss, test_loss) in zip(avg_train_losses, avg_test_losses))
         print("Done")
         print("Writing avg epoch psnr values to file...")
-        with open(f"runs/{cluster_run_dir_name}/output/epoch_psnr_values.txt", "w") as f:
+        with open(f"runs/n2v/{cluster_run_dir_name}/output/epoch_psnr_values.txt", "w") as f:
             f.write("Train_psnr,Test_psnr\n")
-            f.writelines(f"{train_psnr},{test_psnr}\n" for (train_psnr, test_psnr) in zip(avg_train_psnr_values, avg_test_psnr_values))
+            f.writelines(f"{train_psnr:.3f},{test_psnr:.3f}\n" for (train_psnr, test_psnr) in zip(avg_train_psnr_values, avg_test_psnr_values))
         print("Done")
+    
 
 if __name__ == "__main__":
     main()
