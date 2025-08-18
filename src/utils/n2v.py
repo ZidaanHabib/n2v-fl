@@ -5,6 +5,7 @@ import torch.distributed as dist
 from data.dataset import N2VImageDataset, N2VSyntheticImageDataset
 from torch.utils.data import DataLoader, ConcatDataset, random_split, DistributedSampler
 from utils.build import compute_psnr, transform, transform_confocal, transform_nucleus
+import pdb
 
 
 def  create_dataset(data_dir, patch_size, patches_per_image) :
@@ -168,7 +169,10 @@ def train_step(model, data_loader, loss_fn, opt, device, epoch, rank, dir_name: 
         
         # perform masking
         X, y, mask = mask_batch(patches, num_masks)
-        
+
+        #Setting tracer for debugger: 
+        pdb.set_trace() # Comment/Uncomment as required
+
         opt.zero_grad()
         denoised = model(X)
         loss   = loss_fn(denoised[mask], y[mask])
