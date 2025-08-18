@@ -171,7 +171,7 @@ def train_step(model, data_loader, loss_fn, opt, device, epoch, rank, dir_name: 
         X, y, mask = mask_batch(patches, num_masks)
 
         #Setting tracer for debugger: 
-        pdb.set_trace() # Comment/Uncomment as required
+        # pdb.set_trace() # Comment/Uncomment as required
 
         opt.zero_grad()
         denoised = model(X)
