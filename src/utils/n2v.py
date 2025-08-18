@@ -182,11 +182,12 @@ def train_step(model, data_loader, loss_fn, opt, device, epoch, rank, dir_name: 
 
         with torch.inference_mode():
             current_psnr = compute_psnr(denoised, clean, 1.0).item()
+            masked_psnr = compute_psnr(denoised[mask],clean[mask],1)
         psnr_list[batch_idx] = current_psnr
         running_psnr += current_psnr
 
 
-        print(f"Epoch {epoch} | Rank {rank} | Batch {batch_idx} done | Batch loss: {current_loss:.5f} | Batch PSNR: {current_psnr:.3f}")
+        print(f"Epoch {epoch} | Rank {rank} | Batch {batch_idx} done | Batch loss: {current_loss:.5f} | Batch PSNR: {current_psnr:.3f} | Masked PSNR: {masked_psnr}")
     
 
     dist.all_reduce(losses, op=dist.ReduceOp.AVG)
