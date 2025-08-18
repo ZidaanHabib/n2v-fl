@@ -124,7 +124,7 @@ def mask_batch(patches: torch.Tensor, num_masks: int) :
     mask = torch.zeros((B,1,H,W), dtype=torch.bool, device=device)
 
     # flatten images for easier indexing
-    patches_flat = patches.view(B,C, total)
+    patches_flat = patches.reshape(B,C, total)
 
     # get indices of pixels to mask randomly:
     noise = torch.rand(B, total, device=device) # shape (B,1)
@@ -140,16 +140,16 @@ def mask_batch(patches: torch.Tensor, num_masks: int) :
     # send masked values into associate positions
 
     target_flat_exp = target_flat.unsqueeze(1)
-    corrupted_flat = corrupted.view(B,C,total)
-    corrupted_flat = corrupted_flat.clone()
-    corrupted_flat.scatter(2, target_flat_exp, neighbour_vals)
+    corrupted_flat = corrupted.reshape(B,C,total)
+    # corrupted_flat = corrupted_flat.clone()
+    corrupted_flat.scatter_(2, target_flat_exp, neighbour_vals)
     
     # Build mask
     mask_flat = torch.zeros((B, total), dtype=torch.bool, device=device)
     # compute linear indices per batch and set True
     batch_idx = torch.arange(B, device=device).unsqueeze(1)  # (B,1)
     mask_flat[batch_idx, target_flat] = True  # (B, total)
-    mask = mask_flat.view(B, 1, H, W)
+    mask = mask_flat.reshape(B, 1, H, W)
 
     return corrupted, patches, mask  # target is original
 
